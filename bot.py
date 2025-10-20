@@ -4,7 +4,8 @@ from discord import app_commands
 from discord.ext import commands
 import datetime
 from typing import Optional
-from flask import Flask
+import Flask
+from flask 
 from threading import Thread
 import random
 
@@ -37,7 +38,7 @@ async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("hello i am helper bot")
 
 @bot.tree.command(name="joke", description="Tells you a random joke")
-async def joke(self, interaction: discord.Interaction):
+async def joke(interaction: discord.Interaction):
     jokes = [
         "What did one snowman say to the other snowman? It smells like carrots over here!",
         "What did 20 do when it was hungry? Twenty-eight.",
@@ -92,13 +93,6 @@ async def on_message(message):
 
     # Don't forget to process slash commands!
     await bot.process_commands(message)
-
-@bot.event
-async def on_ready():
-    print(f'We have logged in as {bot.user}')
-
-    # Register commands once bot is ready
-    await bot.tree.sync()  # This syncs the slash commands with Discord!
 
 @bot.event
 async def on_ready():
