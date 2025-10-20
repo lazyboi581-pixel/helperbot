@@ -36,17 +36,35 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("hello i am helper bot")
 
-    @app_commands.command(name="joke", description="Tells you a random joke")
-    async def joke(self, interaction: discord.Interaction):
-        jokes = [
-            "What did one snowman say to the other snowman? It smells like carrots over here!",
-            "What did 20 do when it was hungry? Twenty-eight.",
-            "Why are mountains so funny? They’re hill areas.",
-            "Why wasn’t the cactus invited to hang out with the mushrooms? He wasn’t a fungi."
-        ]
-        await interaction.response.send_message(random.choice(jokes))
+@bot.tree.command(name="joke", description="Tells you a random joke")
+async def joke(self, interaction: discord.Interaction):
+    jokes = [
+        "What did one snowman say to the other snowman? It smells like carrots over here!",
+        "What did 20 do when it was hungry? Twenty-eight.",
+        "Why are mountains so funny? They’re hill areas.",
+        "Why wasn’t the cactus invited to hang out with the mushrooms? He wasn’t a fungi."
+    ]
+    await interaction.response.send_message(random.choice(jokes))
 
+@bot.tree.command(name="corndog", description="summons the mighty corndog")
+async def corndog(interaction: discord.Interaction):
+    funny_texts = [
+        "🍢 behold... the sacred corndog of chaos.",
+        "when life gets tough, become the corndog.",
+        "you summoned the corndog... now deal with the consequences.",
+        "a wild corndog appears. it knows your search history."
+    ]
+    
+    gif_url = "https://cdn.discordapp.com/attachments/1359070018922614905/1429858396554793134/nk-image-edit-bounce-zofk3wki.gif?ex=68f7aae7&is=68f65967&hm=9f88b2fef681f6e57ae7aaa81fb3df480beffce780a28fa75ede9c3b4b1053fe&"  # or your preferred GIF link
 
+    embed = discord.Embed(
+        title="🌭 CORNDOG RITUAL INITIATED 🌭",
+        description=random.choice(funny_texts),
+        color=discord.Color.gold()
+    )
+    embed.set_image(url=gif_url)
+    
+    await interaction.response.send_message(embed=embed)
 
 # Slash Command /randomnumber
 @bot.tree.command(name="randomnumber")
