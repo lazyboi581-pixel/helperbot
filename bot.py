@@ -6,6 +6,7 @@ import datetime
 from typing import Optional
 from flask import Flask
 from threading import Thread
+import random
 
 app = Flask('')
 
@@ -35,28 +36,27 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("hello i am helper bot")
 
-# Slash Command /joke
-@bot.tree.command(name="joke")
-async def compliment(interaction: discord.Interaction):
-    import random
-    compliments = [
-        "What did one snowman say to the other snowman? It smells like carrots over here!",
-        "What did 20 do when it was hungry? Twenty-eight.",
-        "Why are mountains so funny? They’re hill areas.",
-        "Why wasn’t the cactus invited to hang out with the mushrooms? He wasn’t a fungi."
-    ]
+    @app_commands.command(name="joke", description="Tells you a random joke")
+    async def joke(self, interaction: discord.Interaction):
+        jokes = [
+            "What did one snowman say to the other snowman? It smells like carrots over here!",
+            "What did 20 do when it was hungry? Twenty-eight.",
+            "Why are mountains so funny? They’re hill areas.",
+            "Why wasn’t the cactus invited to hang out with the mushrooms? He wasn’t a fungi."
+        ]
+        await interaction.response.send_message(random.choice(jokes))
+
+
 
 # Slash Command /randomnumber
 @bot.tree.command(name="randomnumber")
 async def randomnumber(interaction: discord.Interaction):
-    import random
     num = random.randint(1, 100)
     await interaction.response.send_message(f"Your random number is: {num}")
 
 # Slash Command /compliment
 @bot.tree.command(name="compliment")
 async def compliment(interaction: discord.Interaction):
-    import random
     compliments = [
         "You’re awesome! 🌟",
         "Your smile lights up the room! 😊",
