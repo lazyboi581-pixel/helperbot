@@ -85,14 +85,14 @@ async def compliment(interaction: discord.Interaction):
         "**YOU** yes, **YOU** are a || very cool person ||"
     ]
     await interaction.response.send_message(random.choice(compliments))
-    
-# Slash command /ping
+
+
 @bot.tree.command(name="ping", description="Check the bot's latency.")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)  # Convert to milliseconds
 
     embed = discord.Embed(
-        title="🏓 Pong!",
+        title="🏓 Pong! bot is up and running",
         description=f"Latency: **{latency}ms**",
         color=discord.Color.gold()  # Yellow/gold color
     )
