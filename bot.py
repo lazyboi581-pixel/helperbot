@@ -79,7 +79,7 @@ async def compliment(interaction: discord.Interaction):
         "You’re awesome! 🌟",
         "Your smile lights up the room! 😊",
         "You’re a genius! 🧑‍💻",
-        "**YOU** yes, **YOU** are an || alpha sigma male ||"
+        "**YOU** yes, **YOU** are a || very cool person ||"
     ]
     await interaction.response.send_message(random.choice(compliments))
 
