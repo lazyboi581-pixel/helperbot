@@ -43,6 +43,9 @@ async def joke(interaction: discord.Interaction):
         "What did 20 do when it was hungry? Twenty-eight.",
         "Why are mountains so funny? They’re hill areas.",
         "Why wasn’t the cactus invited to hang out with the mushrooms? He wasn’t a fungi."
+        "Why did the scarecrow win an award? Because he was outstanding in his field."
+        "Why did the picture go to jail? It was framed." 
+        "How do you make holy water? You boil the hell out of it."
     ]
     await interaction.response.send_message(random.choice(jokes))
 
