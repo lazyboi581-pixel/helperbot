@@ -76,7 +76,7 @@ async def randomnumber(interaction: discord.Interaction):
     await interaction.response.send_message(f"Your random number is: {num}")
 
 if "boogey man booga booga" in message.content.lower():
-        await message.channel.send("OOOOOOOO BOOGEY BOOGA BULLY BULLYYYYYYYYYYYYYYYYYYYYY")
+    await message.channel.send("OOOOOOOO BOOGEY BOOGA BULLY BULLYYYYYYYYYYYYYYYYYYYYY")
 
 # Slash Command /compliment
 @bot.tree.command(name="compliment")
