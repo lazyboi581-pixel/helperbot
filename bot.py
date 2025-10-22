@@ -34,7 +34,7 @@ bot = commands.Bot(command_prefix='/', intents=intents)
 
 @bot.tree.command(name="hello")
 async def hello(interaction: discord.Interaction):
-    await interaction.response.send_message("hello i am helper bot")
+    await interaction.response.send_message("Hello i am helper bot, how are you?")
 
 @bot.tree.command(name="joke", description="Tells you a random joke")
 async def joke(interaction: discord.Interaction):
