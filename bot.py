@@ -100,6 +100,11 @@ async def ping(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
+@bot.command()
+async def coinflip(ctx):
+    result = random.choice(["Heads", "Tails"])
+    await ctx.send(f"🪙 You flipped **{result}**!")
+
 @bot.event
 async def on_message(message):
     if message.author == bot.user:
