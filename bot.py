@@ -101,11 +101,11 @@ async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
     
 #slash command /flip
-@bot.tree.command(name="flip", description="flip heads or tails.") 
-async def coinflip(ctx):
+@bot.tree.command(name="flip", description="Flip a coin (Heads or Tails)")
+async def flip(interaction: discord.Interaction):
     result = random.choice(["Heads", "Tails"])
-    await ctx.send(f"🪙 You flipped **{result}**!")
-    
+    await interaction.response.send_message(f"🪙 You flipped **{result}**!")
+
 
 @bot.event
 async def on_message(message):
