@@ -70,7 +70,7 @@ async def corndog(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 # Slash Command /randomnumber
-@bot.tree.command(name="randomnumber")
+@bot.tree.command(name="randomnumber", description="picks a random number between 1-100)
 async def randomnumber(interaction: discord.Interaction):
     num = random.randint(1, 100)
     await interaction.response.send_message(f"Your random number is: {num}")
@@ -100,7 +100,7 @@ async def ping(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-@bot.command()
+@bot.tree.command(name="flip", description="flip heads or tails.") 
 async def coinflip(ctx):
     result = random.choice(["Heads", "Tails"])
     await ctx.send(f"🪙 You flipped **{result}**!")
