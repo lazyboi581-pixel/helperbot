@@ -70,7 +70,7 @@ async def corndog(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 # Slash Command /randomnumber
-@bot.tree.command(name="randomnumber", description="picks a random number between 1-100)
+@bot.tree.command(name="randomnumber", description="picks a random number between 1-100")
 async def randomnumber(interaction: discord.Interaction):
     num = random.randint(1, 100)
     await interaction.response.send_message(f"Your random number is: {num}")
@@ -86,7 +86,7 @@ async def compliment(interaction: discord.Interaction):
     ]
     await interaction.response.send_message(random.choice(compliments))
 
-#slaah command /ping
+#slash command /ping
 @bot.tree.command(name="ping", description="Check the bot's latency.")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)  # Convert to milliseconds
@@ -99,11 +99,13 @@ async def ping(interaction: discord.Interaction):
     embed.set_footer(text="Helper Bot • Always here to help!")
 
     await interaction.response.send_message(embed=embed)
-
+    
+#slash command /flip
 @bot.tree.command(name="flip", description="flip heads or tails.") 
 async def coinflip(ctx):
     result = random.choice(["Heads", "Tails"])
     await ctx.send(f"🪙 You flipped **{result}**!")
+    
 
 @bot.event
 async def on_message(message):
