@@ -106,6 +106,31 @@ async def flip(interaction: discord.Interaction):
     result = random.choice(["Heads", "Tails"])
     await interaction.response.send_message(f"🪙 You flipped **{result}**!")
 
+#slash command /poll
+@bot.tree.command(name="poll", description="Create a poll with up to 2 options")
+@app_commands.describe(
+    question="The poll question",
+    option1="First option",
+    option2="Second option"
+)
+async def poll(interaction: discord.Interaction, question: str, option1: str, option2: str):
+    # Create the poll embed
+    embed = discord.Embed(
+        title="📊 New Poll!",
+        description=f"**{question}**\n\n🅰️ {option1}\n🅱️ {option2}",
+        color=discord.Color.blurple()
+    )
+    embed.set_footer(text=f"Poll started by {interaction.user.display_name}")
+
+    # Send the poll
+    poll_message = await interaction.response.send_message(embed=embed)
+    msg = await interaction.original_response()  # Get the actual message
+
+    # Add reaction emojis
+    await msg.add_reaction("🅰️")
+    await msg.add_reaction("🅱️")
+
+
 
 @bot.event
 async def on_message(message):
