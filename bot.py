@@ -76,14 +76,14 @@ async def randomnumber(interaction: discord.Interaction):
     await interaction.response.send_message(f"Your random number is: {num}")
 
 # Slash Command /compliment
-@bot.tree.command(name="compliment", description="compliments you")
+@bot.tree.command(name="compliment", description="Compliments you")
 async def compliment(interaction: discord.Interaction):
     compliments = [
         "You’re awesome! 🌟",
         "Your smile lights up the room! 😊",
         "You’re a genius! 🧑‍💻",
         "**YOU** yes, **YOU** are a || very cool person ||",
-        "your super good at being cool" 
+        "Your super good at being cool!" 
     ]
     await interaction.response.send_message(random.choice(compliments))
 
