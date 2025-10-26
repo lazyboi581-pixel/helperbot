@@ -69,10 +69,10 @@ async def corndog(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
-# Slash Command /random number
-@bot.tree.command(name="random number", description="picks a random number between 1-200")
+# Slash Command /randomnumber
+@bot.tree.command(name="randomnumber", description="picks a random number between 1-100")
 async def randomnumber(interaction: discord.Interaction):
-    num = random.randint(1, 200)
+    num = random.randint(1, 100)
     await interaction.response.send_message(f"Your random number is: {num}")
 
 # Slash Command /compliment
