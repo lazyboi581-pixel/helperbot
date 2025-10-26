@@ -107,7 +107,7 @@ async def flip(interaction: discord.Interaction):
     result = random.choice(["Heads", "Tails"])
     await interaction.response.send_message(f"🪙 You flipped **{result}**!")
 
-#slash command /poll
+#slash command /Poll
 @bot.tree.command(name="poll", description="Create a poll with up to 2 options")
 @app_commands.describe(
     question="The poll question",
