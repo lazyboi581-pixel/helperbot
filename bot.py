@@ -45,7 +45,8 @@ async def joke(interaction: discord.Interaction):
         "Why wasn’t the cactus invited to hang out with the mushrooms? He wasn’t a fungi.",
         "Why did the scarecrow win an award? Because he was outstanding in his field.",
         "Why did the picture go to jail? It was framed.",
-        "How do you make holy water? You boil the hell out of it."
+        "How do you make holy water? You boil the hell out of it.",
+        "What timee did the guy go to the dentist? Touth thirty." 
     ]
     await interaction.response.send_message(random.choice(jokes))
 
