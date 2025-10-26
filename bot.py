@@ -32,7 +32,7 @@ intents.members = True  # required for moderation actions
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
-@bot.tree.command(name="hello", description="say hello to the bot")
+@bot.tree.command(name="hello", description="Say hello to Helper bot")
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello i am helper bot, how are you?")
 
@@ -69,8 +69,8 @@ async def corndog(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
-# Slash Command /randomnumber
-@bot.tree.command(name="randomnumber", description="picks a random number between 1-200")
+#Slash Command /randomnumber
+@bot.tree.command(name="randomnumber", description="Picks a random number between 1-200")
 async def randomnumber(interaction: discord.Interaction):
     num = random.randint(1, 200)
     await interaction.response.send_message(f"Your random number is: {num}")
