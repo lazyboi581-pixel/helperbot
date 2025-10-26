@@ -58,7 +58,7 @@ async def corndog(interaction: discord.Interaction):
         "a wild corndog appears. it knows your search history."
     ]
     
-    gif_url = "https://cdn.discordapp.com/attachments/1359070018922614905/1429858396554793134/nk-image-edit-bounce-zofk3wki.gif?ex=68f7aae7&is=68f65967&hm=9f88b2fef681f6e57ae7aaa81fb3df480beffce780a28fa75ede9c3b4b1053fe&"  # or your preferred GIF link
+    gif_url = "https://cdn.discordapp.com/attachments/1396315775362404383/1432069114511360112/bounce.gif?ex=68ffb5cb&is=68fe644b&hm=9e1a9d0d1f64d92a562dbf94d8a9c7b86516d239ec3d4130172dea7e8cdc1e8d&"  # or your preferred GIF link
 
     embed = discord.Embed(
         title="🌭 CORNDOG RITUAL INITIATED 🌭",
