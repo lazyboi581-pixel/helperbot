@@ -70,9 +70,9 @@ async def corndog(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 # Slash Command /random number
-@bot.tree.command(name="random number", description="picks a random number between 1-100")
+@bot.tree.command(name="random number", description="picks a random number between 1-200")
 async def randomnumber(interaction: discord.Interaction):
-    num = random.randint(1, 100)
+    num = random.randint(1, 200)
     await interaction.response.send_message(f"Your random number is: {num}")
 
 # Slash Command /compliment
@@ -83,6 +83,7 @@ async def compliment(interaction: discord.Interaction):
         "Your smile lights up the room! 😊",
         "You’re a genius! 🧑‍💻",
         "**YOU** yes, **YOU** are a || very cool person ||"
+        "your super good at being cool" 
     ]
     await interaction.response.send_message(random.choice(compliments))
 
