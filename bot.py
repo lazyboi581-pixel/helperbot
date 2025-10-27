@@ -359,6 +359,22 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     # You can expand specific error types here
     await interaction.response.send_message(f"Error: {error}", ephemeral=True)
 
+from discord.ext import tasks
+import discord
+
+@bot.event
+async def on_ready():
+    update_status.start()
+    print(f"✅ Logged in as {bot.user}")
+
+@tasks.loop(minutes=10)
+async def update_status():
+    guild_count = len(bot.guilds)
+    await bot.change_presence(activity=discord.Activity(
+        type=discord.ActivityType.watching,
+        name=f"{guild_count} servers"
+    ))
+
 # Run the bot
 import os
 TOKEN = os.getenv("BOT_TOKEN")
