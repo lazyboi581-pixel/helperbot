@@ -371,7 +371,7 @@ async def on_ready():
 async def update_status():
     guild_count = len(bot.guilds)
     await bot.change_presence(activity=discord.Activity(
-        type=discord.ActivityType.watching,
+        type=discord.ActivityType.playing,
         name=f"Helping {guild_count} servers"
     ))
 
