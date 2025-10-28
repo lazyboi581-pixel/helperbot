@@ -299,6 +299,13 @@ async def unban(interaction: discord.Interaction, user_id: int):
 @bot.tree.command(name="timeout", description="Timeout a member for X minutes")
 @app_commands.describe(member="Member to timeout", minutes="Duration in minutes", reason="Reason (optional)")
 async def timeout(interaction: discord.Interaction, member: discord.Member, minutes: int = 10, reason: Optional[str] = None):
+    # Basic context & bounds checks
+    if not interaction.guild:
+        await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
+        return
+    if minutes < 1 or minutes > 28*24*60:
+        await interaction.response.send_message("Duration must be between 1 and 40320 minutes (28 days).", ephemeral=True)
+        return
     if not interaction.guild:
         await interaction.response.send_message("This command can only be used in a server.", ephemeral=True); return
     if minutes < 1 or minutes > 28*24*60:
