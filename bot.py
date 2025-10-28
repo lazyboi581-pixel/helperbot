@@ -108,6 +108,7 @@ async def flip(interaction: discord.Interaction):
     result = random.choice(["Heads", "Tails"])
     await interaction.response.send_message(f"🪙 You flipped **{result}**!")
 
+
 #slash command /poll
 @bot.tree.command(name="poll", description="Create a timed poll with up to 5 options.")
 async def poll(
@@ -138,29 +139,34 @@ async def poll(
     for i in range(len(options)):
         await message.add_reaction(emojis[i])
 
-    await asyncio.sleep(duration)
-    message = await interaction.channel.fetch_message(message.id)
+    try:
+        await asyncio.sleep(duration)
 
-    results = []
-    for i in range(len(options)):
-        emoji = emojis[i]
-        reaction = discord.utils.get(message.reactions, emoji=emoji)
-        count = reaction.count - 1 if reaction else 0
-        results.append((options[i], count))
+        # refetch message to get updated reactions
+        message = await interaction.channel.fetch_message(message.id)
+        results = []
+        for i in range(len(options)):
+            emoji = emojis[i]
+            reaction = discord.utils.get(message.reactions, emoji=emoji)
+            count = reaction.count - 1 if reaction else 0
+            results.append((options[i], count))
 
-    highest = max(r[1] for r in results)
-    winners = [r[0] for r in results if r[1] == highest]
+        highest = max(r[1] for r in results)
+        winners = [r[0] for r in results if r[1] == highest]
 
-    if highest == 0:
-        result_text = "No votes were cast."
-    elif len(winners) == 1:
-        result_text = f"🏆 **{winners[0]}** wins with **{highest}** votes!"
-    else:
-        result_text = f"🤝 It's a tie between: {', '.join(winners)}"
+        if highest == 0:
+            result_text = "No votes were cast."
+        elif len(winners) == 1:
+            result_text = f"🏆 **{winners[0]}** wins with **{highest}** votes!"
+        else:
+            result_text = f"🤝 It's a tie between: {', '.join(winners)}"
 
-    embed.set_footer(text="Poll ended!")
-    embed.add_field(name="Results", value=result_text, inline=False)
-    await message.edit(embed=embed)
+        embed.set_footer(text="Poll ended!")
+        embed.add_field(name="Results", value=result_text, inline=False)
+        await message.edit(embed=embed)
+
+    except Exception as e:
+        print(f"Error ending poll: {e}")
 
 
 
