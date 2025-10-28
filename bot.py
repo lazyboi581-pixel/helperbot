@@ -299,32 +299,43 @@ async def unban(interaction: discord.Interaction, user_id: int):
 @bot.tree.command(name="timeout", description="Timeout a member for X minutes")
 @app_commands.describe(member="Member to timeout", minutes="Duration in minutes", reason="Reason (optional)")
 async def timeout(interaction: discord.Interaction, member: discord.Member, minutes: int = 10, reason: Optional[str] = None):
-    # Basic context & bounds checks
+    # basic context & bounds
     if not interaction.guild:
         await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
         return
     if minutes < 1 or minutes > 28*24*60:
-        await interaction.response.send_message("Duration must be between 1 and 40320 minutes (28 days).", ephemeral=True)
+        await interaction.response.send_message("Duration must be between 1 minute and 40320 minutes (28 days).", ephemeral=True)
         return
-    if not interaction.guild:
-        await interaction.response.send_message("This command can only be used in a server.", ephemeral=True); return
-    if minutes < 1 or minutes > 28*24*60:
-        await interaction.response.send_message("Duration must be between 1 minute and 40320 minutes (28 days).", ephemeral=True); return
-    if not has_guild_permissions(interaction.user, moderate_members=True):
-        await interaction.response.send_message("You need the Moderate Members permission to use this.", ephemeral=True); return
-    if not has_guild_permissions(interaction.guild.me, moderate_members=True):
-        await interaction.response.send_message("I don't have permission to timeout members.", ephemeral=True); return
 
+    # permission checks (invoker)
+    if not isinstance(interaction.user, discord.Member) or not has_guild_permissions(interaction.user, moderate_members=True):
+        await interaction.response.send_message("You need the Moderate Members permission to use this.", ephemeral=True)
+        return
+
+    # permission checks (bot)
+    bot_member = interaction.guild.get_member(interaction.client.user.id) or interaction.guild.me
+    if not has_guild_permissions(bot_member, moderate_members=True):
+        await interaction.response.send_message("I don't have the Moderate Members permission.", ephemeral=True)
+        return
+
+    # hierarchy checks
     bad = check_hierarchy(interaction, member)
     if bad:
-        await interaction.response.send_message(bad, ephemeral=True); return
+        await interaction.response.send_message(bad, ephemeral=True)
+        return
 
-    until = datetime.datetime.utcnow() + datetime.timedelta(minutes=minutes)
+    # create an AWARE UTC datetime (Discord expects timezone-aware)
+    until = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=minutes)
+
     try:
-        await member.edit(timeout=until, reason=reason)
+        # IMPORTANT: use communication_disabled_until (not timeout)
+        await member.edit(communication_disabled_until=until, reason=reason)
         await interaction.response.send_message(f"✅ {member.mention} timed out for {minutes} minute(s). Reason: {reason or 'No reason provided.'}")
     except Exception as e:
+        # log for debugging, but keep the user message succinct
+        print(f"[Timeout Error] target={member} minutes={minutes} error={e}")
         await interaction.response.send_message(f"Failed to timeout: {e}", ephemeral=True)
+
 
 # UNTIMEOUT
 @bot.tree.command(name="untimeout", description="Remove timeout from a member")
