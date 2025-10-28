@@ -108,29 +108,59 @@ async def flip(interaction: discord.Interaction):
     result = random.choice(["Heads", "Tails"])
     await interaction.response.send_message(f"🪙 You flipped **{result}**!")
 
-#slash command /Poll
-@bot.tree.command(name="poll", description="Create a poll with up to 2 options")
-@app_commands.describe(
-    question="The poll question",
-    option1="First option",
-    option2="Second option"
-)
-async def poll(interaction: discord.Interaction, question: str, option1: str, option2: str):
-    # Create the poll embed
-    embed = discord.Embed(
-        title="📊 New Poll!",
-        description=f"**{question}**\n\n🅰️ {option1}\n🅱️ {option2}",
-        color=discord.Color.blurple()
-    )
-    embed.set_footer(text=f"Poll started by {interaction.user.display_name}")
+#slash command /poll
+@bot.tree.command(name="poll", description="Create a timed poll with up to 5 options.")
+async def poll(
+    interaction: discord.Interaction,
+    question: str,
+    option1: str,
+    option2: str,
+    option3: str = None,
+    option4: str = None,
+    option5: str = None,
+    duration: int = 60
+):
+    options = [opt for opt in [option1, option2, option3, option4, option5] if opt]
+    emojis = ["🅰️", "🅱️", "🇨", "🇩", "🇪"]
 
-    # Send the poll
-    poll_message = await interaction.response.send_message(embed=embed)
-    msg = await interaction.original_response()  # Get the actual message
+    if len(options) < 2:
+        await interaction.response.send_message("❌ You must provide at least two options.", ephemeral=True)
+        return
 
-    # Add reaction emojis
-    await msg.add_reaction("🅰️")
-    await msg.add_reaction("🅱️")
+    embed = discord.Embed(title="📊 Poll", description=question, color=discord.Color.blurple())
+    value = "\n".join(f"{emojis[i]} {options[i]}" for i in range(len(options)))
+    embed.add_field(name="Options", value=value, inline=False)
+    embed.set_footer(text=f"Poll ends in {duration} seconds!")
+
+    await interaction.response.send_message(embed=embed)
+    message = await interaction.original_response()
+
+    for i in range(len(options)):
+        await message.add_reaction(emojis[i])
+
+    await asyncio.sleep(duration)
+    message = await interaction.channel.fetch_message(message.id)
+
+    results = []
+    for i in range(len(options)):
+        emoji = emojis[i]
+        reaction = discord.utils.get(message.reactions, emoji=emoji)
+        count = reaction.count - 1 if reaction else 0
+        results.append((options[i], count))
+
+    highest = max(r[1] for r in results)
+    winners = [r[0] for r in results if r[1] == highest]
+
+    if highest == 0:
+        result_text = "No votes were cast."
+    elif len(winners) == 1:
+        result_text = f"🏆 **{winners[0]}** wins with **{highest}** votes!"
+    else:
+        result_text = f"🤝 It's a tie between: {', '.join(winners)}"
+
+    embed.set_footer(text="Poll ended!")
+    embed.add_field(name="Results", value=result_text, inline=False)
+    await message.edit(embed=embed)
 
 
 
