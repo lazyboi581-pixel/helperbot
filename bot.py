@@ -312,7 +312,7 @@ async def update_status():
 async def on_ready():
     update_status.start()
     try:
-        GUILD_ID = int(os.getenv("1425616508037365875"))  # Set your test server ID here
+        GUILD_ID = int(os.getenv("SERVER_ID"))  # Set your test server ID here
         guild = discord.Object(id=guild)
         await bot.tree.sync(guild=guild)
         print(f"✅ Logged in as {bot.user} | Commands synced to guild {GUILD_ID}!")
@@ -325,5 +325,5 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # ------------------ Run Bot ------------------
-TOKEN = os.getenv("BOT_Token")
+TOKEN = os.getenv("BOT_TOKEN")
 bot.run(TOKEN)
