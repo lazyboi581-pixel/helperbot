@@ -9,6 +9,7 @@ from threading import Thread
 import random
 import datetime
 import os
+import aiohttp
 
 # ------------------ Flask Keep-Alive ------------------
 app = Flask(__name__)
@@ -112,6 +113,49 @@ async def ping(interaction: discord.Interaction):
 async def flip(interaction: discord.Interaction):
     result = random.choice(["Heads", "Tails"])
     await interaction.response.send_message(f"🪙 You flipped **{result}**!")
+
+#slash command /8ball
+@bot.tree.command(name="8ball", description="Ask the magic 8 ball a question!")
+@app_commands.describe(question="Your question for the 8 ball")
+async def eight_ball(interaction: discord.Interaction, question: str):
+    responses = [
+        "It is certain.",
+        "Without a doubt.",
+        "Yes – definitely.",
+        "You may rely on it.",
+        "As I see it, yes.",
+        "Most likely.",
+        "Outlook good.",
+        "Yes.",
+        "Signs point to yes.",
+        "Reply hazy, try again.",
+        "Ask again later.",
+        "Better not tell you now.",
+        "Cannot predict now.",
+        "Concentrate and ask again.",
+        "Don’t count on it.",
+        "My reply is no.",
+        "Outlook not so good.",
+        "Very doubtful."
+    ]
+    answer = random.choice(responses)
+    await interaction.response.send_message(f"🎱 **Question:** {question}\n💬 **Answer:** {answer}")
+    
+#slash command /meme
+@bot.tree.command(name="meme", description="Get a random meme from Reddit!")
+async def meme(interaction: discord.Interaction):
+    await interaction.response.defer()  # lets Discord know you're working
+    async with aiohttp.ClientSession() as session:
+        async with session.get("https://meme-api.com/gimme") as response:
+            if response.status == 200:
+                data = await response.json()
+                embed = discord.Embed(title=data["title"], color=discord.Color.random())
+                embed.set_image(url=data["url"])
+                embed.set_footer(text=f"From r/{data['subreddit']}")
+                await interaction.followup.send(embed=embed)
+            else:
+                await interaction.followup.send("😢 Couldn't fetch a meme right now. Try again later!")
+
 
 # ------------------ Poll Command ------------------
 @bot.tree.command(name="poll", description="Create a timed poll with up to 5 options.")
