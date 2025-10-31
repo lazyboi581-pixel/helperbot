@@ -156,6 +156,20 @@ async def meme(interaction: discord.Interaction):
             else:
                 await interaction.followup.send("😢 Couldn't fetch a meme right now. Try again later!")
 
+#slash command /nuke
+@bot.tree.command(name="nuke", description="Nuke a house (for fun, not literally!)")
+async def nuke(interaction: discord.Interaction):
+    gif_url = "https://cdn.discordapp.com/attachments/1341473233949425718/1433678027371581542/image0.gif"  # GIF of house exploding
+    embed = discord.Embed(
+        title="💥 N U K E  I N C O M I N G 💥",
+        description="BOOM! The house has been obliterated! ☢️",
+        color=discord.Color.red()
+    )
+    embed.set_image(url=gif_url)
+    embed.set_footer(text=f"Requested by {interaction.user.name}")
+    await interaction.response.send_message(embed=embed)
+
+
 
 # ------------------ Poll Command ------------------
 @bot.tree.command(name="poll", description="Create a timed poll with up to 5 options.")
