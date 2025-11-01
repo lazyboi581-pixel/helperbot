@@ -1,4 +1,4 @@
-# bot.py
+# bot.py — fixed version
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -18,10 +18,11 @@ app = Flask(__name__)
 def home():
     return "Bot is running!"
 
-def run():
+def run_flask():
+    # run Flask in a separate thread (daemon so it won't block shutdown)
     app.run(host='0.0.0.0', port=8080)
 
-Thread(target=run).start()
+Thread(target=run_flask, daemon=True).start()
 
 # ------------------ Bot Setup ------------------
 intents = discord.Intents.default()
@@ -31,23 +32,37 @@ intents.members = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 # ------------------ Helper Functions ------------------
-def has_guild_permissions(user: discord.Member, **perms):
-    gp = user.guild_permissions
+def has_guild_permissions(user, **perms):
+    """
+    Accepts either discord.Member or discord.User-like objects.
+    Returns True if user has *all* specified permissions in their guild_permissions.
+    """
+    gp = getattr(user, "guild_permissions", None)
+    if gp is None:
+        return False
     return all(getattr(gp, name, False) == value for name, value in perms.items())
 
 def check_hierarchy(interaction: discord.Interaction, target: discord.Member) -> Optional[str]:
+    # Validate context
+    if not interaction.guild:
+        return "This command can only be used in a server."
     invoker = interaction.user
     guild = interaction.guild
-    bot_member = guild.me
+    bot_member = guild.me  # Member representing the bot in this guild
 
+    # Basic checks
     if target == invoker:
         return "You cannot perform this action on yourself."
-    if target == bot_member:
+    if bot_member and target == bot_member:
         return "I can't perform that action on myself."
-    if isinstance(invoker, discord.Member) and target.top_role >= invoker.top_role and invoker != guild.owner:
-        return "You can't moderate this user because their role is equal or higher than yours."
-    if target.top_role >= bot_member.top_role and guild.owner_id != bot_member.id:
-        return "I can't moderate this user because their role is equal or higher than mine."
+    # Ensure invoker is a Member (should be in guild context)
+    if isinstance(invoker, discord.Member):
+        if target.top_role >= invoker.top_role and invoker != guild.owner:
+            return "You can't moderate this user because their role is equal or higher than yours."
+    # Check bot hierarchy: bot must be able to act on the target
+    if bot_member:
+        if target.top_role >= bot_member.top_role and guild.owner_id != bot_member.id:
+            return "I can't moderate this user because their role is equal or higher than mine."
     return None
 
 # ------------------ Fun Commands ------------------
@@ -65,7 +80,7 @@ async def joke(interaction: discord.Interaction):
         "Why did the scarecrow win an award? Because he was outstanding in his field.",
         "Why did the picture go to jail? It was framed.",
         "How do you make holy water? You boil the hell out of it.",
-        "What timee did the guy go to the dentist? Touth thirty." 
+        "What time did the guy go to the dentist? Tooth thirty."
     ]
     await interaction.response.send_message(random.choice(jokes))
 
@@ -96,7 +111,7 @@ async def compliment(interaction: discord.Interaction):
         "Your smile lights up the room! 😊",
         "You’re a genius! 🧑‍💻",
         "**YOU**, yes **YOU**, are a very cool person!",
-        "You’re super good at being cool!" 
+        "You’re super good at being cool!"
     ]
     await interaction.response.send_message(random.choice(compliments))
 
@@ -119,47 +134,33 @@ async def flip(interaction: discord.Interaction):
 @app_commands.describe(question="Your question for the 8 ball")
 async def eight_ball(interaction: discord.Interaction, question: str):
     responses = [
-        "It is certain.",
-        "Without a doubt.",
-        "Yes – definitely.",
-        "You may rely on it.",
-        "As I see it, yes.",
-        "Most likely.",
-        "Outlook good.",
-        "Yes.",
-        "Signs point to yes.",
-        "Reply hazy, try again.",
-        "Ask again later.",
-        "Better not tell you now.",
-        "Cannot predict now.",
-        "Concentrate and ask again.",
-        "Don’t count on it.",
-        "My reply is no.",
-        "Outlook not so good.",
-        "Very doubtful."
+        "It is certain.", "Without a doubt.", "Yes – definitely.", "You may rely on it.",
+        "As I see it, yes.", "Most likely.", "Outlook good.", "Yes.", "Signs point to yes.",
+        "Reply hazy, try again.", "Ask again later.", "Better not tell you now.",
+        "Cannot predict now.", "Concentrate and ask again.", "Don’t count on it.",
+        "My reply is no.", "Outlook not so good.", "Very doubtful."
     ]
     answer = random.choice(responses)
     await interaction.response.send_message(f"🎱 **Question:** {question}\n💬 **Answer:** {answer}")
-    
+
 #slash command /meme
 @bot.tree.command(name="meme", description="Get a random meme from Reddit!")
 async def meme(interaction: discord.Interaction):
-    await interaction.response.defer()  # lets Discord know you're working
+    await interaction.response.defer()
     async with aiohttp.ClientSession() as session:
         async with session.get("https://meme-api.com/gimme") as response:
             if response.status == 200:
                 data = await response.json()
-                embed = discord.Embed(title=data["title"], color=discord.Color.random())
-                embed.set_image(url=data["url"])
-                embed.set_footer(text=f"From r/{data['subreddit']}")
+                embed = discord.Embed(title=data.get("title", "meme"), color=discord.Color.random())
+                embed.set_image(url=data.get("url"))
+                embed.set_footer(text=f"From r/{data.get('subreddit','unknown')}")
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send("😢 Couldn't fetch a meme right now. Try again later!")
 
-#slash command /nuke
 @bot.tree.command(name="nuke", description="Nuke a house (for fun, not literally!)")
 async def nuke(interaction: discord.Interaction):
-    gif_url = "https://cdn.discordapp.com/attachments/1341473233949425718/1433678027371581542/image0.gif"  # GIF of house exploding
+    gif_url = "https://cdn.discordapp.com/attachments/1341473233949425718/1433678027371581542/image0.gif"
     embed = discord.Embed(
         title="💥 N U K E  I N C O M I N G 💥",
         description="BOOM! The house has been obliterated! ☢️",
@@ -169,10 +170,9 @@ async def nuke(interaction: discord.Interaction):
     embed.set_footer(text=f"Requested by {interaction.user.name}")
     await interaction.response.send_message(embed=embed)
 
-
-
 # ------------------ Poll Command ------------------
 @bot.tree.command(name="poll", description="Create a timed poll with up to 5 options.")
+@app_commands.describe(question="Poll question")
 async def poll(interaction: discord.Interaction, question: str,
                option1: str, option2: str,
                option3: str = None, option4: str = None, option5: str = None,
@@ -233,7 +233,8 @@ async def kick(interaction: discord.Interaction, member: discord.Member, reason:
     if not has_guild_permissions(interaction.guild.me, kick_members=True):
         return await interaction.response.send_message("I need Kick Members.", ephemeral=True)
     bad = check_hierarchy(interaction, member)
-    if bad: return await interaction.response.send_message(bad, ephemeral=True)
+    if bad:
+        return await interaction.response.send_message(bad, ephemeral=True)
     try:
         await member.kick(reason=reason)
         await interaction.response.send_message(f"✅ {member.mention} kicked. Reason: {reason or 'None'}")
@@ -251,7 +252,8 @@ async def ban(interaction: discord.Interaction, member: discord.Member, reason: 
     if not has_guild_permissions(interaction.guild.me, ban_members=True):
         return await interaction.response.send_message("I need Ban Members.", ephemeral=True)
     bad = check_hierarchy(interaction, member)
-    if bad: return await interaction.response.send_message(bad, ephemeral=True)
+    if bad:
+        return await interaction.response.send_message(bad, ephemeral=True)
     try:
         await member.ban(reason=reason, delete_message_days=0)
         await interaction.response.send_message(f"✅ {member.mention} banned. Reason: {reason or 'None'}")
@@ -279,12 +281,17 @@ async def unban(interaction: discord.Interaction, user_id: int):
 @bot.tree.command(name="timeout", description="Timeout a member for X minutes")
 @app_commands.describe(member="Member", minutes="Duration in minutes", reason="Reason (optional)")
 async def timeout(interaction: discord.Interaction, member: discord.Member, minutes: int = 10, reason: Optional[str] = None):
-    if not interaction.guild: return await interaction.response.send_message("Server only.", ephemeral=True)
-    if minutes < 1 or minutes > 40320: return await interaction.response.send_message("1-40320 minutes only.", ephemeral=True)
-    if not has_guild_permissions(interaction.user, moderate_members=True): return await interaction.response.send_message("You need Moderate Members.", ephemeral=True)
-    if not has_guild_permissions(interaction.guild.me, moderate_members=True): return await interaction.response.send_message("I need Moderate Members.", ephemeral=True)
+    if not interaction.guild:
+        return await interaction.response.send_message("Server only.", ephemeral=True)
+    if minutes < 1 or minutes > 40320:
+        return await interaction.response.send_message("1-40320 minutes only.", ephemeral=True)
+    if not has_guild_permissions(interaction.user, moderate_members=True):
+        return await interaction.response.send_message("You need Moderate Members.", ephemeral=True)
+    if not has_guild_permissions(interaction.guild.me, moderate_members=True):
+        return await interaction.response.send_message("I need Moderate Members.", ephemeral=True)
     bad = check_hierarchy(interaction, member)
-    if bad: return await interaction.response.send_message(bad, ephemeral=True)
+    if bad:
+        return await interaction.response.send_message(bad, ephemeral=True)
     try:
         await member.edit(timeout=datetime.timedelta(minutes=minutes), reason=reason)
         await interaction.response.send_message(f"✅ {member.mention} timed out for {minutes} min. Reason: {reason or 'None'}")
@@ -295,10 +302,15 @@ async def timeout(interaction: discord.Interaction, member: discord.Member, minu
 @bot.tree.command(name="untimeout", description="Remove timeout from a member")
 @app_commands.describe(member="Member", reason="Reason")
 async def untimeout(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
-    if not interaction.guild: return await interaction.response.send_message("Server only.", ephemeral=True)
-    if not has_guild_permissions(interaction.user, moderate_members=True): return await interaction.response.send_message("You need Moderate Members.", ephemeral=True)
+    if not interaction.guild:
+        return await interaction.response.send_message("Server only.", ephemeral=True)
+    if not has_guild_permissions(interaction.user, moderate_members=True):
+        return await interaction.response.send_message("You need Moderate Members.", ephemeral=True)
+    if not has_guild_permissions(interaction.guild.me, moderate_members=True):
+        return await interaction.response.send_message("I need Moderate Members.", ephemeral=True)
     bad = check_hierarchy(interaction, member)
-    if bad: return await interaction.response.send_message(bad, ephemeral=True)
+    if bad:
+        return await interaction.response.send_message(bad, ephemeral=True)
     try:
         await member.edit(timeout=None, reason=reason)
         await interaction.response.send_message(f"✅ Timeout removed from {member.mention}. Reason: {reason or 'None'}")
@@ -309,10 +321,14 @@ async def untimeout(interaction: discord.Interaction, member: discord.Member, re
 @bot.tree.command(name="purge", description="Bulk delete messages (1-100)")
 @app_commands.describe(number="Number of messages")
 async def purge(interaction: discord.Interaction, number: int):
-    if not interaction.guild: return await interaction.response.send_message("Server only.", ephemeral=True)
-    if number < 1 or number > 100: return await interaction.response.send_message("1-100 only.", ephemeral=True)
-    if not has_guild_permissions(interaction.user, manage_messages=True): return await interaction.response.send_message("You need Manage Messages.", ephemeral=True)
-    if not has_guild_permissions(interaction.guild.me, manage_messages=True): return await interaction.response.send_message("I need Manage Messages.", ephemeral=True)
+    if not interaction.guild:
+        return await interaction.response.send_message("Server only.", ephemeral=True)
+    if number < 1 or number > 100:
+        return await interaction.response.send_message("1-100 only.", ephemeral=True)
+    if not has_guild_permissions(interaction.user, manage_messages=True):
+        return await interaction.response.send_message("You need Manage Messages.", ephemeral=True)
+    if not has_guild_permissions(interaction.guild.me, manage_messages=True):
+        return await interaction.response.send_message("I need Manage Messages.", ephemeral=True)
     await interaction.response.defer(ephemeral=True)
     try:
         deleted = await interaction.channel.purge(limit=number)
@@ -323,9 +339,12 @@ async def purge(interaction: discord.Interaction, number: int):
 # LOCK
 @bot.tree.command(name="lock", description="Lock channel")
 async def lock(interaction: discord.Interaction):
-    if not interaction.guild: return await interaction.response.send_message("Server only.", ephemeral=True)
-    if not has_guild_permissions(interaction.user, manage_channels=True): return await interaction.response.send_message("You need Manage Channels.", ephemeral=True)
-    if not has_guild_permissions(interaction.guild.me, manage_channels=True): return await interaction.response.send_message("I need Manage Channels.", ephemeral=True)
+    if not interaction.guild:
+        return await interaction.response.send_message("Server only.", ephemeral=True)
+    if not has_guild_permissions(interaction.user, manage_channels=True):
+        return await interaction.response.send_message("You need Manage Channels.", ephemeral=True)
+    if not has_guild_permissions(interaction.guild.me, manage_channels=True):
+        return await interaction.response.send_message("I need Manage Channels.", ephemeral=True)
     try:
         await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
         await interaction.response.send_message("🔒 Channel locked.")
@@ -335,9 +354,12 @@ async def lock(interaction: discord.Interaction):
 # UNLOCK
 @bot.tree.command(name="unlock", description="Unlock channel")
 async def unlock(interaction: discord.Interaction):
-    if not interaction.guild: return await interaction.response.send_message("Server only.", ephemeral=True)
-    if not has_guild_permissions(interaction.user, manage_channels=True): return await interaction.response.send_message("You need Manage Channels.", ephemeral=True)
-    if not has_guild_permissions(interaction.guild.me, manage_channels=True): return await interaction.response.send_message("I need Manage Channels.", ephemeral=True)
+    if not interaction.guild:
+        return await interaction.response.send_message("Server only.", ephemeral=True)
+    if not has_guild_permissions(interaction.user, manage_channels=True):
+        return await interaction.response.send_message("You need Manage Channels.", ephemeral=True)
+    if not has_guild_permissions(interaction.guild.me, manage_channels=True):
+        return await interaction.response.send_message("I need Manage Channels.", ephemeral=True)
     try:
         await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=None)
         await interaction.response.send_message("🔓 Channel unlocked.")
@@ -348,10 +370,13 @@ async def unlock(interaction: discord.Interaction):
 @bot.tree.command(name="warn", description="Warn a member (DM)")
 @app_commands.describe(member="Member", reason="Reason")
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
-    if not interaction.guild: return await interaction.response.send_message("Server only.", ephemeral=True)
-    if not has_guild_permissions(interaction.user, kick_members=True): return await interaction.response.send_message("You need Kick/Ban permission.", ephemeral=True)
+    if not interaction.guild:
+        return await interaction.response.send_message("Server only.", ephemeral=True)
+    if not has_guild_permissions(interaction.user, kick_members=True):
+        return await interaction.response.send_message("You need Kick/Ban permission.", ephemeral=True)
     bad = check_hierarchy(interaction, member)
-    if bad: return await interaction.response.send_message(bad, ephemeral=True)
+    if bad:
+        return await interaction.response.send_message(bad, ephemeral=True)
     try:
         await member.send(f"You were warned in **{interaction.guild.name}** by **{interaction.user}**.\nReason: {reason or 'None'}")
         await interaction.response.send_message(f"✅ {member.mention} warned (DM sent).")
@@ -368,20 +393,38 @@ async def update_status():
 # ------------------ Events ------------------
 @bot.event
 async def on_ready():
-    update_status.start()
+    # start status loop only if not already running
+    if not update_status.is_running():
+        update_status.start()
+
+    # Attempt to sync commands: prefer guild sync for instant updates if GUILD_ID provided
     try:
-        GUILD_ID = int(os.getenv("GUILD_ID"))  # Set your test server ID here
-        guild = discord.Object(id=guild_iD)
-        await bot.tree.sync(guild=guild)
-        print(f"✅ Logged in as {bot.user} | Commands synced to guild {GUILD_ID}!")
+        GUILD_ID = os.getenv("GUILD_ID")
+        if GUILD_ID:
+            try:
+                guild_id_int = int(GUILD_ID)
+                guild = discord.Object(id=guild_id_int)
+                await bot.tree.sync(guild=guild)
+                print(f"✅ Logged in as {bot.user} | Commands synced to guild {guild_id_int}!")
+            except ValueError:
+                print(f"[on_ready] Invalid GUILD_ID value: {GUILD_ID} (must be int). Falling back to global sync.")
+                await bot.tree.sync()
+                print(f"✅ Logged in as {bot.user} | Commands globally synced!")
+        else:
+            await bot.tree.sync()
+            print(f"✅ Logged in as {bot.user} | Commands globally synced!")
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
 @bot.event
 async def on_message(message):
-    if message.author == bot.user: return
+    if message.author == bot.user:
+        return
     await bot.process_commands(message)
 
 # ------------------ Run Bot ------------------
 TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise RuntimeError("BOT_TOKEN environment variable not set. Set BOT_TOKEN before running.")
+
 bot.run(TOKEN)
