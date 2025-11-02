@@ -11,6 +11,7 @@ import datetime
 import os
 import aiohttp
 
+OWNER_ID = os.getenv("1382858887786528803")
 # ------------------ Flask Keep-Alive ------------------
 app = Flask(__name__)
 
@@ -103,59 +104,68 @@ async def corndog(interaction: discord.Interaction):
 async def randomnumber(interaction: discord.Interaction):
     num = random.randint(1, 200)
     await interaction.response.send_message(f"Your random number is: {num}")
-
-@bot.tree.command(name="servers", description="List servers I'm in (invite links if possible)")
+@bot.tree.command(name="servers", description="List all servers the bot is in (with invite links if possible)")
 async def servers(interaction: discord.Interaction):
-    # Make it public: anyone can run this
-    await interaction.response.defer(ephemeral=True)  # avoid interaction timeout
+    # owner-only
+    try:
+        if OWNER_ID:
+            if str(interaction.user.id) != str(OWNER_ID):
+                return await interaction.response.send_message("You are not allowed to use this command.", ephemeral=True)
+        else:
+            # fallback: allow bot owner (based on application owner)
+            if not await bot.is_owner(interaction.user):
+                return await interaction.response.send_message("You are not allowed to use this command.", ephemeral=True)
+    except Exception:
+        return await interaction.response.send_message("Permission check failed.", ephemeral=True)
 
-    embed = discord.Embed(
+    await interaction.response.defer(ephemeral=True)  # avoid interaction timeout
+    embed = Embed(
         title="🤖 Servers I'm In",
-        description="Listing guilds I'm in. Invite links shown when I can create them.",
+        description="Here's a list of guilds I'm in (invite links when possible).",
         color=discord.Color.blurple()
     )
 
-    # Limits to avoid rate-limits and embed size issues
+    # safety: limit how many guilds we'll attempt invites for in one run to avoid rate-limits
     MAX_INVITE_ATTEMPTS = 10
-    MAX_FIELDS = 20  # keep embed readable (Discord limits ~25 fields)
     invite_attempts = 0
 
     for guild in bot.guilds:
-        if len(embed.fields) >= MAX_FIELDS:
-            embed.add_field(name="…", value=f"{len(bot.guilds) - len(embed.fields)} more guilds omitted", inline=False)
-            break
-
         invite_link = None
-        # Try to create an invite only if we haven't hit the invite attempt cap
-        if invite_attempts < MAX_INVITE_ATTEMPTS:
-            for channel in guild.text_channels:
-                try:
-                    bot_member = guild.me or guild.get_member(bot.user.id)
-                    perms = channel.permissions_for(bot_member) if bot_member else None
-                except Exception:
-                    perms = None
+        # if we already attempted too many invites, skip creating further invites
+        if invite_attempts >= MAX_INVITE_ATTEMPTS:
+            embed.add_field(name=guild.name, value="(Invite creation skipped to avoid rate limits)", inline=False)
+            continue
 
-                if perms and perms.create_instant_invite:
-                    try:
-                        # create a non-expiring invite; unique=False to reduce rate pressure
-                        invite = await channel.create_invite(max_age=0, max_uses=0, unique=False)
-                        invite_link = invite.url
-                        invite_attempts += 1
-                        # tiny sleep to reduce chance of 429
-                        await asyncio.sleep(0.2)
-                        break
-                    except Exception:
-                        invite_link = None
-                        break
+        # find a text channel where the bot can create invites
+        for channel in guild.text_channels:
+            try:
+                perms = channel.permissions_for(guild.me or guild.get_member(bot.user.id))
+            except Exception:
+                perms = None
+
+            if perms and perms.create_instant_invite:
+                try:
+                    invite = await channel.create_invite(max_age=0, max_uses=0, unique=False)
+                    invite_link = invite.url
+                    invite_attempts += 1
+                    # slight pause to reduce chance of 429
+                    await asyncio.sleep(0.25)
+                    break
+                except Exception:
+                    # don't crash the whole command; move to next channel/guild
+                    invite_link = None
+                    break
 
         if invite_link:
-            embed.add_field(name=guild.name, value=f"[Invite Link]({invite_link}) — Members: {guild.member_count}", inline=False)
+            embed.add_field(name=guild.name, value=f"[Invite Link]({invite_link})", inline=False)
         else:
-            embed.add_field(name=guild.name, value=f"⚠️ No invite available — Members: {guild.member_count}", inline=False)
+            embed.add_field(name=guild.name, value="⚠️ No invite (missing permission or skipped)", inline=False)
 
-    embed.set_footer(text=f"Total guilds: {len(bot.guilds)} | Invites created: {invite_attempts}")
+    # if too many guilds to show, optionally truncate
+    if len(bot.guilds) > 40:
+        embed.set_footer(text=f"Showing {len(embed.fields)} of {len(bot.guilds)} guilds — truncated for readability.")
+
     await interaction.followup.send(embed=embed, ephemeral=True)
-
 
 @bot.tree.command(name="compliment", description="Compliments you")
 async def compliment(interaction: discord.Interaction):
