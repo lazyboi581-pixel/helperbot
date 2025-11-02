@@ -99,7 +99,7 @@ async def corndog(interaction: discord.Interaction):
                           color=discord.Color.gold())
     embed.set_image(url=gif_url)
     await interaction.response.send_message(embed=embed)
-
+#slash command /random number
 @bot.tree.command(name="randomnumber", description="Picks a random number between 1-200")
 async def randomnumber(interaction: discord.Interaction):
     num = random.randint(1, 200)
