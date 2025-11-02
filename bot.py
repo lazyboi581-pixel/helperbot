@@ -104,6 +104,34 @@ async def randomnumber(interaction: discord.Interaction):
     num = random.randint(1, 200)
     await interaction.response.send_message(f"Your random number is: {num}")
 
+@bot.tree.command(name="servers", description="List all servers the bot is in (with invite links if possible)")
+async def servers(interaction: discord.Interaction):
+    # Only allow the bot owner to use this command for privacy/safety
+    embed = discord.Embed(
+        title="🤖 Servers I'm In",
+        description="Here’s a list of all servers I’m currently in (with invite links if available):",
+        color=discord.Color.blurple()
+    )
+
+    for guild in bot.guilds:
+        invite_link = None
+        # Try to create an invite from the first text channel where bot has permission
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild.me).create_instant_invite:
+                try:
+                    invite = await channel.create_invite(max_age=0, max_uses=0, unique=False)
+                    invite_link = invite.url
+                    break
+                except Exception:
+                    continue
+        if invite_link:
+            embed.add_field(name=guild.name, value=f"[Invite Link]({invite_link})", inline=False)
+        else:
+            embed.add_field(name=guild.name, value="⚠️ Couldn’t create invite (missing permission)", inline=False)
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 @bot.tree.command(name="compliment", description="Compliments you")
 async def compliment(interaction: discord.Interaction):
     compliments = [
