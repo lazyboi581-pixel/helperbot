@@ -104,13 +104,14 @@ async def corndog(interaction: discord.Interaction):
 async def randomnumber(interaction: discord.Interaction):
     num = random.randint(1, 200)
     await interaction.response.send_message(f"Your random number is: {num}")
-bot.tree.command(name="servers", description="List all servers the bot is in (with invite links if possible)")
+@bot.tree.command(name="servers", description="List all servers the bot is in (with invite links if possible)")
 async def servers(interaction: discord.Interaction):
-    OWNER_ID = "1382858887786528803"  # replace this with your actual Discord user ID
+    # Replace with your numeric Discord user ID as env var "OWNER_ID" or fallback to this ID
+    OWNER_ID = int(os.getenv("OWNER_ID", "1382858887786528803","1363467415006085262"))
 
     # Owner-only check
     try:
-        if str(interaction.user.id) != str(OWNER_ID):
+        if interaction.user.id != OWNER_ID:
             return await interaction.response.send_message(
                 "You are not allowed to use this command.", ephemeral=True
             )
@@ -119,7 +120,7 @@ async def servers(interaction: discord.Interaction):
             "Permission check failed.", ephemeral=True
         )
 
-    await interaction.response.defer(ephemeral=True)  # only visible to the command user (you)
+    await interaction.response.defer(ephemeral=True)
 
     embed = discord.Embed(
         title="🤖 Servers I'm In",
@@ -133,7 +134,6 @@ async def servers(interaction: discord.Interaction):
     for guild in bot.guilds:
         invite_link = None
 
-        # stop making invites if we hit the safety limit
         if invite_attempts >= MAX_INVITE_ATTEMPTS:
             embed.add_field(
                 name=guild.name,
@@ -143,7 +143,7 @@ async def servers(interaction: discord.Interaction):
             continue
 
         # try to create an invite if allowed
-        for channel in guild.text_channels:
+        for channel in getattr(guild, "text_channels", []):
             try:
                 perms = channel.permissions_for(guild.me)
             except Exception:
@@ -160,7 +160,6 @@ async def servers(interaction: discord.Interaction):
                     invite_link = None
                     break
 
-        # always list the guild even if no invite is available
         if invite_link:
             embed.add_field(
                 name=guild.name,
@@ -174,7 +173,6 @@ async def servers(interaction: discord.Interaction):
                 inline=False
             )
 
-    # tidy footer if there are too many guilds
     if len(bot.guilds) > 40:
         embed.set_footer(
             text=f"Showing {len(embed.fields)} of {len(bot.guilds)} guilds — truncated for readability."
