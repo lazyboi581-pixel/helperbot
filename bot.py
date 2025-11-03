@@ -106,7 +106,7 @@ async def randomnumber(interaction: discord.Interaction):
     await interaction.response.send_message(f"Your random number is: {num}")
 bot.tree.command(name="servers", description="List all servers the bot is in (with invite links if possible)")
 async def servers(interaction: discord.Interaction):
-    OWNER_ID = "YOUR_DISCORD_ID_HERE"  # replace this with your actual Discord user ID
+    OWNER_ID = "1382858887786528803"  # replace this with your actual Discord user ID
 
     # Owner-only check
     try:
