@@ -67,6 +67,7 @@ def check_hierarchy(interaction: discord.Interaction, target: discord.Member) ->
     return None
 
 # ------------------ Fun Commands ------------------
+#slash command /hello
 @bot.tree.command(name="hello", description="Say hello to Helper bot")
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello! I am Helper Bot, how are you?")
