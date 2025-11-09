@@ -10,6 +10,7 @@ import random
 import datetime
 import os
 import aiohttp
+import json
 
 OWNER_ID = os.getenv("1382858887786528803")
 # ------------------ Flask Keep-Alive ------------------
@@ -33,6 +34,20 @@ intents.members = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 # ------------------ Helper Functions ------------------
+WARN_FILE = "warns.json"
+
+def load_warns():
+    if not os.path.exists(WARN_FILE):
+        with open(WARN_FILE, "w") as f:
+            json.dump({}, f)
+    with open(WARN_FILE, "r") as f:
+        return json.load(f)
+
+def save_warns(data):
+    with open(WARN_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+
 def has_guild_permissions(user, **perms):
     """
     Accepts either discord.Member or discord.User-like objects.
@@ -358,7 +373,7 @@ async def unlock(interaction: discord.Interaction):
         await interaction.response.send_message(f"Failed: {e}", ephemeral=True)
 
 # WARN
-@bot.tree.command(name="warn", description="Warn a member (DM)")
+@bot.tree.command(name="warn", description="Warn a member (DM + record)")
 @app_commands.describe(member="Member", reason="Reason")
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
     if not interaction.guild:
@@ -368,11 +383,57 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
     bad = check_hierarchy(interaction, member)
     if bad:
         return await interaction.response.send_message(bad, ephemeral=True)
+
+    data = load_warns()
+    guild_id = str(interaction.guild.id)
+    user_id = str(member.id)
+    if guild_id not in data:
+        data[guild_id] = {}
+    if user_id not in data[guild_id]:
+        data[guild_id][user_id] = []
+
+    warn_info = {
+        "reason": reason or "No reason provided",
+        "by": str(interaction.user),
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
+    data[guild_id][user_id].append(warn_info)
+    save_warns(data)
+
     try:
-        await member.send(f"You were warned in **{interaction.guild.name}** by **{interaction.user}**.\nReason: {reason or 'None'}")
-        await interaction.response.send_message(f"✅ {member.mention} warned (DM sent).")
-    except Exception as e:
-        await interaction.response.send_message(f"Failed to DM: {e}", ephemeral=True)
+        await member.send(
+            f"⚠️ You were warned in **{interaction.guild.name}** by **{interaction.user}**.\n"
+            f"Reason: {reason or 'None'}"
+        )
+    except:
+        pass
+
+    await interaction.response.send_message(f"✅ {member.mention} warned. Reason: {reason or 'None'}")
+
+# warns
+@bot.tree.command(name="warns", description="Check how many times a user has been warned")
+@app_commands.describe(member="Member whose warnings you want to check")
+async def warns(interaction: discord.Interaction, member: discord.Member):
+    data = load_warns()
+    guild_id = str(interaction.guild.id)
+    user_id = str(member.id)
+
+    if guild_id not in data or user_id not in data[guild_id]:
+        return await interaction.response.send_message(f"{member.mention} has no warnings.", ephemeral=True)
+
+    warns_list = data[guild_id][user_id]
+    embed = discord.Embed(
+        title=f"⚠️ Warnings for {member}",
+        color=discord.Color.orange()
+    )
+    for i, warn in enumerate(warns_list, start=1):
+        embed.add_field(
+            name=f"#{i} - {warn['by']}",
+            value=f"**Reason:** {warn['reason']}\n**Date:** {warn['timestamp']}",
+            inline=False
+        )
+    embed.set_footer(text=f"Total warnings: {len(warns_list)}")
+    await interaction.response.send_message(embed=embed)
 
 # ------------------ Status ------------------
 @tasks.loop(minutes=10)
