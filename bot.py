@@ -396,7 +396,7 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
         "reason": reason or "No reason provided",
         "by": str(interaction.user),
         "timestamp": datetime.datetime.utcnow().isoformat()
-    }
+       }
 
     data[guild_id][user_id].append(warn_info)
     save_warns(data)
