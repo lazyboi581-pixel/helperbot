@@ -408,7 +408,7 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
     except:
         pass
 
-    await interaction.response.send_message(f"✅ {member.mention} warned. Reason: {reason or 'None'}")
+    await interaction.response.send_message(f"✅ {member.mention} has been warned, warning number:- {len(warns_list)}, reason:- {reason or 'None'}")
 
 # warns
 @bot.tree.command(name="warns", description="Check how many times a user has been warned")
