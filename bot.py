@@ -412,7 +412,8 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
         pass
 
     await interaction.response.send_message(
-        f"✅ {member.mention} has been warned. Warning number: {len(warns_list)}, Reason: {reason or 'None'}"
+        f"✅ {member.mention} has been warned. Warning number {len(warns_list)}, 
+        Reason: {reason or 'None'}"
     )
 
 
