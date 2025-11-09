@@ -392,28 +392,29 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
     if user_id not in data[guild_id]:
         data[guild_id][user_id] = []
 
-   warn_info = {
-    "reason": reason or "No reason provided",
-    "by": str(interaction.user),
-    "timestamp": datetime.datetime.utcnow().isoformat()
-   }
+       warn_info = {
+        "reason": reason or "No reason provided",
+        "by": str(interaction.user),
+        "timestamp": datetime.datetime.utcnow().isoformat()
+    }
 
-data[guild_id][user_id].append(warn_info)
-save_warns(data)
+    data[guild_id][user_id].append(warn_info)
+    save_warns(data)
 
-warns_list = data[guild_id][user_id]
+    warns_list = data[guild_id][user_id]
 
-try:
-    await member.send(
-        f"⚠️ You were warned in **{interaction.guild.name}** by **{interaction.user}**.\n"
-        f"Reason: {reason or 'None'}"
+    try:
+        await member.send(
+            f"⚠️ You were warned in **{interaction.guild.name}** by **{interaction.user}**.\n"
+            f"Reason: {reason or 'None'}"
+        )
+    except:
+        pass
+
+    await interaction.response.send_message(
+        f"✅ {member.mention} has been warned. Warning number: {len(warns_list)}, Reason: {reason or 'None'}"
     )
-except:
-    pass
 
-await interaction.response.send_message(
-    f"✅ {member.mention} has been warned. Warning number: {len(warns_list)}, Reason: {reason or 'None'}"
-)
 
 
 # warns
