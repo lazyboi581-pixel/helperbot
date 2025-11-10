@@ -101,6 +101,7 @@ async def joke(interaction: discord.Interaction):
     ]
     await interaction.response.send_message(random.choice(jokes))
 
+#slash coomand /corndog
 @bot.tree.command(name="corndog", description="Summons the mighty corndog")
 async def corndog(interaction: discord.Interaction):
     funny_texts = [
