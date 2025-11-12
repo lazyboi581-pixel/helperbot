@@ -134,6 +134,7 @@ async def compliment(interaction: discord.Interaction):
     ]
     await interaction.response.send_message(random.choice(compliments))
 
+#slash command /ping
 @bot.tree.command(name="ping", description="Check the bot's latency.")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
