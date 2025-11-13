@@ -12,6 +12,7 @@ import os
 import aiohttp
 import json
 
+
 OWNER_ID = os.getenv("1382858887786528803")
 # ------------------ Flask Keep-Alive ------------------
 app = Flask(__name__)
@@ -178,6 +179,88 @@ async def meme(interaction: discord.Interaction):
                 await interaction.followup.send(embed=embed)
             else:
                 await interaction.followup.send("😢 Couldn't fetch a meme right now. Try again later!")
+
+
+# ==============================
+# 🎁 GIVEAWAY COMMANDS SECTION 🎁
+# ==============================
+
+# slash command /giveawaystart 
+@bot.tree.command(name="giveawaystart", description="Start a giveaway")
+@app_commands.describe(duration="Duration in minutes", prize="Prize name", winners="Number of winners (default 1)")
+async def giveaway_start(interaction: discord.Interaction, duration: int, prize: str, winners: int = 1):
+    await interaction.response.defer()
+    end_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=duration)
+
+    embed = discord.Embed(
+        title="🎉 Giveaway Started! 🎉",
+        description=f"**Prize:** {prize}\n**Hosted by:** {interaction.user.mention}\n**Ends:** <t:{int(end_time.timestamp())}:R>\n\nClick 🎟️ to enter!",
+        color=discord.Color.green()
+    )
+
+    view = GiveawayView(bot, prize, winners, end_time)
+    message = await interaction.followup.send(embed=embed, view=view)
+
+    # Store info on the message itself for easy reference
+    view.message = message
+    view.entries = []
+    view.host = interaction.user
+
+    # Automatically end the giveaway
+    await asyncio.sleep(duration * 60)
+    await end_giveaway(bot, message, prize, winners, view.entries)
+
+# --- /giveawayend ---
+@bot.tree.command(name="giveawayend", description="End a giveaway manually")
+@app_commands.describe(message_id="Message ID of the giveaway to end")
+async def giveaway_end(interaction: discord.Interaction, message_id: str):
+    channel = interaction.channel
+    try:
+        message = await channel.fetch_message(int(message_id))
+        for child in message.components[0].children:
+            if isinstance(child, discord.ui.Button) and hasattr(child, "view"):
+                view = child.view
+                prize = getattr(view, "prize", "Unknown prize")
+                winners = getattr(view, "winners", 1)
+                entries = getattr(view, "entries", [])
+                await end_giveaway(bot, message, prize, winners, entries)
+                await interaction.response.send_message("✅ Giveaway ended manually!", ephemeral=True)
+                return
+        await interaction.response.send_message("❌ Could not find that giveaway or it has no entries.", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error ending giveaway: {e}", ephemeral=True)
+
+# --- Helper to end giveaway ---
+async def end_giveaway(bot, message, prize, winners, entries):
+    channel = message.channel
+    if not entries:
+        await channel.send(f"😢 No one entered the giveaway for **{prize}**.")
+    else:
+        winner_list = random.sample(entries, min(len(entries), winners))
+        winners_mention = ", ".join([f"<@{u}>" for u in winner_list])
+        await channel.send(f"🎉 Congratulations {winners_mention}! You won **{prize}**!")
+
+# --- View for giveaway button ---
+class GiveawayView(discord.ui.View):
+    def __init__(self, bot, prize, winners, end_time):
+        super().__init__(timeout=None)
+        self.bot = bot
+        self.prize = prize
+        self.winners = winners
+        self.end_time = end_time
+        self.entries = []
+        self.message = None
+        self.host = None
+
+    @discord.ui.button(label="🎟️ Enter", style=discord.ButtonStyle.blurple)
+    async def enter(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id in self.entries:
+            await interaction.response.send_message("❌ You already entered!", ephemeral=True)
+            return
+
+        self.entries.append(interaction.user.id)
+        await interaction.response.send_message("✅ You entered the giveaway!", ephemeral=True)
+
 
 # ------------------ Poll Command ------------------
 @bot.tree.command(name="poll", description="Create a timed poll with up to 5 options.")
