@@ -13,6 +13,7 @@ import aiohttp
 import json
 
 
+
 OWNER_ID = os.getenv("1382858887786528803")
 # ------------------ Flask Keep-Alive ------------------
 app = Flask(__name__)
@@ -181,16 +182,13 @@ async def meme(interaction: discord.Interaction):
                 await interaction.followup.send("😢 Couldn't fetch a meme right now. Try again later!")
 
 
-# ==============================
-# 🎁 GIVEAWAY COMMANDS SECTION 🎁
-# ==============================
-
 # slash command /giveawaystart 
 @bot.tree.command(name="giveawaystart", description="Start a giveaway")
 @app_commands.describe(duration="Duration in minutes", prize="Prize name", winners="Number of winners (default 1)")
 async def giveaway_start(interaction: discord.Interaction, duration: int, prize: str, winners: int = 1):
     await interaction.response.defer()
     end_time = datetime.datetime.utcnow() + datetime.timedelta(minutes=duration)
+
 
     embed = discord.Embed(
         title="🎉 Giveaway Started! 🎉",
