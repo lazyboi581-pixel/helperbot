@@ -566,6 +566,18 @@ async def on_message(message):
         return
     await bot.process_commands(message)
 
+# Bot Ready & Slash Command Sync
+
+@bot.event
+async def on_ready():
+    # Sync all slash commands with Discord
+    await bot.tree.sync()
+    print(f"✅ Logged in as {bot.user} — Slash commands synced!")
+
+    # Optional: print all registered slash commands for debug
+    cmds = await bot.tree.fetch_commands()
+    print("Registered slash commands:", [c.name for c in cmds])
+
 # ------------------ Run Bot ------------------
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
