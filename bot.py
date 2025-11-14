@@ -13,7 +13,7 @@ import aiohttp
 import json
 
 
-# ❗ FIXED: owner id env var was wrong
+
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 
 # ------------------ Flask Keep-Alive ------------------
@@ -316,7 +316,7 @@ async def poll(interaction: discord.Interaction, question: str,
 
 
 # ------------------ Moderation Commands ------------------
-# (ALL FIXED — no syntax errors anymore)
+# (i fixed it all angel              )
 
 @bot.tree.command(name="kick", description="Kick a member")
 async def kick(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
@@ -449,6 +449,63 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
     await interaction.response.send_message(
         f"⚠️ Warned {member.mention}. Total warnings: {len(data[guild_id][uid])}"
     )
+
+# CLEAR ALL WARNS
+@bot.tree.command(name="clearwarns", description="Clear all warnings for a member")
+@app_commands.describe(member="Member whose warnings you want to clear")
+async def clearwarns(interaction: discord.Interaction, member: discord.Member):
+
+    if not has_guild_permissions(interaction.user, kick_members=True):
+        return await interaction.response.send_message("Missing permission.", ephemeral=True)
+
+    data = load_warns()
+    guild_id = str(interaction.guild.id)
+    uid = str(member.id)
+
+    if guild_id in data and uid in data[guild_id]:
+        data[guild_id][uid] = []
+        save_warns(data)
+        return await interaction.response.send_message(
+            f"🗑️ Cleared all warnings for {member.mention}"
+        )
+
+    await interaction.response.send_message(
+        f"{member.mention} has no warnings.", ephemeral=True
+    )
+
+
+
+@bot.tree.command(name="delwarn", description="Delete a single warning by number")
+@app_commands.describe(member="Member", warn_number="Warning number to delete")
+async def delwarn(interaction: discord.Interaction, member: discord.Member, warn_number: int):
+
+    if not has_guild_permissions(interaction.user, kick_members=True):
+        return await interaction.response.send_message("Missing permission.", ephemeral=True)
+
+    data = load_warns()
+    guild_id = str(interaction.guild.id)
+    uid = str(member.id)
+
+    if guild_id not in data or uid not in data[guild_id]:
+        return await interaction.response.send_message(
+            "This user has no warnings.", ephemeral=True
+        )
+
+    warns_list = data[guild_id][uid]
+
+    if warn_number < 1 or warn_number > len(warns_list):
+        return await interaction.response.send_message(
+            "Invalid warning number.", ephemeral=True
+        )
+
+    removed = warns_list.pop(warn_number - 1)
+    save_warns(data)
+
+    await interaction.response.send_message(
+        f"🗑️ Removed warning #{warn_number} from {member.mention}\n"
+        f"**Removed reason:** {removed['reason']}"
+    )
+
 
 @bot.tree.command(name="warns", description="Check a user's warnings")
 async def warns(interaction: discord.Interaction, member: discord.Member):
