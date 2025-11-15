@@ -157,6 +157,37 @@ async def eight_ball(interaction: discord.Interaction, question: str):
     ]
     await interaction.response.send_message(f"🎱 **Question:** {question}\n💬 **Answer:** {random.choice(responses)}")
 
+# slash command /cute 
+@bot.tree.command(name="cute", description="Get a random cute dog or cat picture!")
+@app_commands.describe(animal="Choose dog or cat")
+@app_commands.choices(animal=[
+    app_commands.Choice(name="Dog", value="dog"),
+    app_commands.Choice(name="Cat", value="cat")
+])
+async def cute(interaction: discord.Interaction, animal: app_commands.Choice[str]):
+    await interaction.response.defer()
+
+    async with aiohttp.ClientSession() as session:
+        if animal.value == "dog":
+            # Random dog API
+            async with session.get("https://dog.ceo/api/breeds/image/random") as resp:
+                data = await resp.json()
+                pic = data["message"]
+                title = "🐶 Cute Dog!"
+
+        else:
+            # Random cat API
+            async with session.get("https://api.thecatapi.com/v1/images/search") as resp:
+                data = await resp.json()
+                pic = data[0]["url"]
+                title = "🐱 Cute Cat!"
+
+    embed = discord.Embed(title=title, color=discord.Color.random())
+    embed.set_image(url=pic)
+
+    await interaction.followup.send(embed=embed)
+
+
 
 # ------------------ Meme Command ------------------
 @bot.tree.command(name="meme", description="Get a random meme from Reddit")
