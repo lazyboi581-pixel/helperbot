@@ -187,6 +187,19 @@ async def cute(interaction: discord.Interaction, animal: app_commands.Choice[str
 
     await interaction.followup.send(embed=embed)
 
+@bot.tree.command(name="avatar", description="Show a user's avatar")
+async def avatar(interaction: discord.Interaction, member: discord.Member = None):
+    member = member or interaction.user
+    embed = discord.Embed(
+        title=f"{member.name}'s Avatar",
+        color=discord.Color.random()
+    )
+    embed.set_image(url=member.avatar)
+    await interaction.response.send_message(embed=embed)
+
+@bot.tree.command(name="cookie", description="Give someone a cookie 🍪")
+async def cookie(interaction: discord.Interaction, member: discord.Member):
+    await interaction.response.send_message(f"🍪 {interaction.user.mention} gave {member.mention} a **cookie!**")
 
 
 # ------------------ Meme Command ------------------
