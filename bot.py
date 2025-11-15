@@ -136,7 +136,7 @@ async def compliment(interaction: discord.Interaction):
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
     embed = discord.Embed(
-        title="🏓 Pong!",
+        title="🏓 Pong! Bot is up and running!",
         description=f"Latency: **{latency}ms**",
         color=discord.Color.gold()
     )
