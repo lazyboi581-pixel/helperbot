@@ -202,7 +202,7 @@ async def cookie(interaction: discord.Interaction, member: discord.Member):
     await interaction.response.send_message(f"🍪 {interaction.user.mention} gave {member.mention} a **cookie!**")
 
 
-# ------------------ Meme Command ------------------
+# slash command /meme
 @bot.tree.command(name="meme", description="Get a random meme from Reddit")
 async def meme(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -217,7 +217,7 @@ async def meme(interaction: discord.Interaction):
             await interaction.followup.send(embed=embed)
 
 
-# ------------------ GIVEAWAY ------------------
+# slash command /giveaway
 
 class GiveawayView(discord.ui.View):
     def __init__(self, prize, winners):
@@ -357,6 +357,68 @@ async def poll(interaction: discord.Interaction, question: str,
     result_embed.add_field(name="Outcome", value=result_text, inline=False)
 
     await interaction.followup.send(embed=result_embed)
+
+
+from discord.ui import View, Button
+
+# ------------------ Help Command (Auto-Updating + Buttons) ------------------
+@bot.tree.command(name="help", description="Show the help menu with all commands.")
+async def help_command(interaction: discord.Interaction):
+
+    # Create the embed
+    embed = discord.Embed(
+        title="📘 Help Menu",
+        description="Here’s a list of all my available commands!",
+        color=discord.Color.blue()
+    )
+
+    # Auto-detect commands
+    fun_cmds = []
+    utility_cmds = []
+    moderation_cmds = []
+
+    for cmd in bot.tree.get_commands():
+        # Organize by name — you can adjust categories however you want
+        if cmd.name in ["hello", "joke", "corndog", "randomnumber", "compliment", "ping", "flip", "8ball", "cute"]:
+            fun_cmds.append(f"`/{cmd.name}`")
+
+        elif cmd.name in ["warn", "clearwarnings", "giverole", "removerole"]:
+            moderation_cmds.append(f"`/{cmd.name}`")
+
+        else:
+            utility_cmds.append(f"`/{cmd.name}`")
+
+    # Add fields
+    if fun_cmds:
+        embed.add_field(name="🎉 Fun Commands", value="\n".join(fun_cmds), inline=False)
+
+    if moderation_cmds:
+        embed.add_field(name="🔧 Moderation Commands", value="\n".join(moderation_cmds), inline=False)
+
+    if utility_cmds:
+        embed.add_field(name="🛠 Utility Commands", value="\n".join(utility_cmds), inline=False)
+
+    embed.set_footer(text="Thanks for using Helper Bot! 💙")
+
+    # Buttons
+    view = View()
+
+    view.add_item(Button(
+        label="Support Server",
+        url="https://discord.gg/7mSV6kENz3"
+    ))
+
+    view.add_item(Button(
+        label="Terms of Service",
+        url="https://helper-bot-tos.carrd.co/"
+    ))
+
+    view.add_item(Button(
+        label="Privacy Policy",
+        url="https://helper-bot-privacy-policy.carrd.co/"
+    ))
+
+    await interaction.response.send_message(embed=embed, view=view)
 
 
 # ------------------ Moderation Commands ------------------
