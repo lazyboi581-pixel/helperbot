@@ -13,6 +13,7 @@ import aiohttp
 import json
 import time
 from discord.ui import View, Button
+await bot.load_extension("logs")
 
 
 
@@ -781,6 +782,135 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 
     embed.set_footer(text=f"Total warnings: {len(warns_list)}")
     await interaction.response.send_message(embed=embed)
+
+# ========== MESSAGE LOGGING SYSTEM (FULL COG) ==========
+import discord
+from discord.ext import commands
+from discord import app_commands
+import json
+import os
+
+
+# JSON load/save helpers
+def load_logs():
+    if not os.path.exists("log_config.json"):
+        with open("log_config.json", "w") as f:
+            json.dump({}, f)
+    with open("log_config.json", "r") as f:
+        return json.load(f)
+
+
+def save_logs(data):
+    with open("log_config.json", "w") as f:
+        json.dump(data, f, indent=4)
+
+
+class Logs(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.logs = load_logs()  # Load saved log channels
+
+
+    # ------------------ SET LOG CHANNEL ------------------
+    @app_commands.command(
+        name="set_message_log_channel",
+        description="Set the channel used for message edit/delete logs."
+    )
+    @app_commands.checks.has_permissions(manage_messages=True)
+    async def set_message_log_channel(
+        self,
+        interaction: discord.Interaction,
+        channel: discord.TextChannel
+    ):
+        guild_id = str(interaction.guild.id)
+
+        self.logs[guild_id] = channel.id
+        save_logs(self.logs)
+
+        embed = discord.Embed(
+            title="📘 Message Log Channel Set",
+            description=f"Message logs will now be sent to {channel.mention}",
+            color=discord.Color.green()
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+    # ------------------ MESSAGE DELETE LOG ------------------
+    @commands.Cog.listener()
+    async def on_message_delete(self, message: discord.Message):
+        if not message.guild:
+            return
+
+        if message.author.bot:
+            return  # Ignore bot messages
+
+        guild_id = str(message.guild.id)
+        if guild_id not in self.logs:
+            return  # Logging not set up
+
+        log_channel = message.guild.get_channel(self.logs[guild_id])
+        if not log_channel:
+            return
+
+        embed = discord.Embed(
+            title="🗑️ Message Deleted",
+            color=discord.Color.red()
+        )
+        embed.add_field(name="Author", value=message.author.mention, inline=True)
+        embed.add_field(name="Channel", value=message.channel.mention, inline=True)
+        embed.add_field(name="Content", value=message.content or "*No text content*", inline=False)
+        embed.timestamp = message.created_at
+
+        await log_channel.send(embed=embed)
+
+
+    # ------------------ MESSAGE EDIT LOG ------------------
+    @commands.Cog.listener()
+    async def on_message_edit(self, before: discord.Message, after: discord.Message):
+        if not before.guild:
+            return
+
+        if before.author.bot:
+            return  # Ignore bot messages
+
+        if before.content == after.content:
+            return  # No actual text change
+
+        guild_id = str(before.guild.id)
+        if guild_id not in self.logs:
+            return  # Logging not set up
+
+        log_channel = before.guild.get_channel(self.logs[guild_id])
+        if not log_channel:
+            return
+
+        embed = discord.Embed(
+            title="✏️ Message Edited",
+            color=discord.Color.orange()
+        )
+        embed.add_field(name="Author", value=before.author.mention, inline=True)
+        embed.add_field(name="Channel", value=before.channel.mention, inline=True)
+
+        embed.add_field(
+            name="Before",
+            value=before.content or "*No text content*",
+            inline=False
+        )
+
+        embed.add_field(
+            name="After",
+            value=after.content or "*No text content*",
+            inline=False
+        )
+
+        embed.timestamp = after.edited_at or discord.utils.utcnow()
+
+        await log_channel.send(embed=embed)
+
+
+# Setup function required for cogs
+async def setup(bot):
+    await bot.add_cog(Logs(bot))
 
 
 # ------------------ Status Loop ------------------
