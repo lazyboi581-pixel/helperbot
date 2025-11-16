@@ -363,63 +363,83 @@ async def poll(interaction: discord.Interaction, question: str,
 from discord.ui import View, Button
 
 # ------------------ Help Command (Auto-Updating + Buttons) ------------------
-@bot.tree.command(name="help", description="Show the help menu with all commands.")
+
+@bot.tree.command(name="help", description="Show the help menu with pages.")
 async def help_command(interaction: discord.Interaction):
 
-    # Create the embed
-    embed = discord.Embed(
-        title="📘 Help Menu",
-        description="Here’s a list of all my available commands!",
-        color=discord.Color.blue()
-    )
-
-    # Auto-detect commands
+    # Auto detect commands
     fun_cmds = []
-    utility_cmds = []
     moderation_cmds = []
+    utility_cmds = []
 
     for cmd in bot.tree.get_commands():
-        # Organize by name — you can adjust categories however you want
-        if cmd.name in ["hello", "joke", "corndog", "randomnumber", "compliment", "ping", "flip", "8ball", "cute"]:
+
+        if cmd.name in ["hello", "joke", "corndog", "randomnumber", "compliment", "ping", "flip", "eight_ball", "8ball", "cute"]:
             fun_cmds.append(f"`/{cmd.name}`")
 
-        elif cmd.name in ["warn", "clearwarnings", "giverole", "removerole"]:
+        elif cmd.name in ["kick", "ban", "unban", "timeout", "untimeout", "purge", "lock", "unlock", "warn", "clearwarns", "delwarn", "warns"]:
             moderation_cmds.append(f"`/{cmd.name}`")
 
         else:
             utility_cmds.append(f"`/{cmd.name}`")
 
-    # Add fields
-    if fun_cmds:
-        embed.add_field(name="🎉 Fun Commands", value="\n".join(fun_cmds), inline=False)
+    # Pages
+    pages = []
 
-    if moderation_cmds:
-        embed.add_field(name="🔧 Moderation Commands", value="\n".join(moderation_cmds), inline=False)
+    # Page 1 - Fun
+    embed1 = discord.Embed(
+        title="📘 Help Menu — Page 1/3",
+        description="🎉 **Fun Commands**",
+        color=discord.Color.blue()
+    )
+    embed1.add_field(name="Commands", value="\n".join(fun_cmds) if fun_cmds else "None", inline=False)
+    embed1.set_footer(text="Use ◀️▶️ to switch pages")
+    pages.append(embed1)
 
-    if utility_cmds:
-        embed.add_field(name="🛠 Utility Commands", value="\n".join(utility_cmds), inline=False)
+    # Page 2 - Moderation
+    embed2 = discord.Embed(
+        title="📘 Help Menu — Page 2/3",
+        description="🔧 **Moderation Commands**",
+        color=discord.Color.blurple()
+    )
+    embed2.add_field(name="Commands", value="\n".join(moderation_cmds) if moderation_cmds else "None", inline=False)
+    embed2.set_footer(text="Use ◀️▶️ to switch pages")
+    pages.append(embed2)
 
-    embed.set_footer(text="Thanks for using Helper Bot! 💙")
+    # Page 3 - Utility
+    embed3 = discord.Embed(
+        title="📘 Help Menu — Page 3/3",
+        description="🛠 **Utility Commands**",
+        color=discord.Color.green()
+    )
+    embed3.add_field(name="Commands", value="\n".join(utility_cmds) if utility_cmds else "None", inline=False)
+    embed3.set_footer(text="Use ◀️▶️ to switch pages")
+    pages.append(embed3)
 
     # Buttons
-    view = View()
+    class HelpView(View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.page = 0
 
-    view.add_item(Button(
-        label="Support Server",
-        url="https://discord.gg/7mSV6kENz3"
-    ))
+            # Bottom Link Buttons
+            self.add_item(Button(label="Support Server", url="https://discord.gg/7mSV6kENz3"))
+            self.add_item(Button(label="Terms of Service", url="https://helper-bot-tos.carrd.co/"))
+            self.add_item(Button(label="Privacy Policy", url="https://helper-bot-privacy-policy.carrd.co/"))
 
-    view.add_item(Button(
-        label="Terms of Service",
-        url="https://helper-bot-tos.carrd.co/"
-    ))
+        @discord.ui.button(label="◀️", style=discord.ButtonStyle.blurple)
+        async def previous(self, interaction2: discord.Interaction, button: Button):
+            self.page = (self.page - 1) % len(pages)
+            await interaction2.response.edit_message(embed=pages[self.page], view=self)
 
-    view.add_item(Button(
-        label="Privacy Policy",
-        url="https://helper-bot-privacy-policy.carrd.co/"
-    ))
+        @discord.ui.button(label="▶️", style=discord.ButtonStyle.blurple)
+        async def next(self, interaction2: discord.Interaction, button: Button):
+            self.page = (self.page + 1) % len(pages)
+            await interaction2.response.edit_message(embed=pages[self.page], view=self)
 
-    await interaction.response.send_message(embed=embed, view=view)
+    view = HelpView()
+
+    await interaction.response.send_message(embed=pages[0], view=view)
 
 
 # ------------------ User Info Command ------------------
@@ -780,136 +800,6 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 
     embed.set_footer(text=f"Total warnings: {len(warns_list)}")
     await interaction.response.send_message(embed=embed)
-
-# ========== MESSAGE LOGGING SYSTEM (FULL COG) ==========
-import discord
-from discord.ext import commands
-from discord import app_commands
-import json
-import os
-
-
-# JSON load/save helpers
-def load_logs():
-    if not os.path.exists("log_config.json"):
-        with open("log_config.json", "w") as f:
-            json.dump({}, f)
-    with open("log_config.json", "r") as f:
-        return json.load(f)
-
-
-def save_logs(data):
-    with open("log_config.json", "w") as f:
-        json.dump(data, f, indent=4)
-
-
-class Logs(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.logs = load_logs()  # Load saved log channels
-
-
-    # ------------------ SET LOG CHANNEL ------------------
-    @app_commands.command(
-        name="set_message_log_channel",
-        description="Set the channel used for message edit/delete logs."
-    )
-    @app_commands.checks.has_permissions(manage_messages=True)
-    async def set_message_log_channel(
-        self,
-        interaction: discord.Interaction,
-        channel: discord.TextChannel
-    ):
-        guild_id = str(interaction.guild.id)
-
-        self.logs[guild_id] = channel.id
-        save_logs(self.logs)
-
-        embed = discord.Embed(
-            title="📘 Message Log Channel Set",
-            description=f"Message logs will now be sent to {channel.mention}",
-            color=discord.Color.green()
-        )
-        await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-    # ------------------ MESSAGE DELETE LOG ------------------
-    @commands.Cog.listener()
-    async def on_message_delete(self, message: discord.Message):
-        if not message.guild:
-            return
-
-        if message.author.bot:
-            return  # Ignore bot messages
-
-        guild_id = str(message.guild.id)
-        if guild_id not in self.logs:
-            return  # Logging not set up
-
-        log_channel = message.guild.get_channel(self.logs[guild_id])
-        if not log_channel:
-            return
-
-        embed = discord.Embed(
-            title="🗑️ Message Deleted",
-            color=discord.Color.red()
-        )
-        embed.add_field(name="Author", value=message.author.mention, inline=True)
-        embed.add_field(name="Channel", value=message.channel.mention, inline=True)
-        embed.add_field(name="Content", value=message.content or "*No text content*", inline=False)
-        embed.timestamp = message.created_at
-
-        await log_channel.send(embed=embed)
-
-
-    # ------------------ MESSAGE EDIT LOG ------------------
-    @commands.Cog.listener()
-    async def on_message_edit(self, before: discord.Message, after: discord.Message):
-        if not before.guild:
-            return
-
-        if before.author.bot:
-            return  # Ignore bot messages
-
-        if before.content == after.content:
-            return  # No actual text change
-
-        guild_id = str(before.guild.id)
-        if guild_id not in self.logs:
-            return  # Logging not set up
-
-        log_channel = before.guild.get_channel(self.logs[guild_id])
-        if not log_channel:
-            return
-
-        embed = discord.Embed(
-            title="✏️ Message Edited",
-            color=discord.Color.orange()
-        )
-        embed.add_field(name="Author", value=before.author.mention, inline=True)
-        embed.add_field(name="Channel", value=before.channel.mention, inline=True)
-
-        embed.add_field(
-            name="Before",
-            value=before.content or "*No text content*",
-            inline=False
-        )
-
-        embed.add_field(
-            name="After",
-            value=after.content or "*No text content*",
-            inline=False
-        )
-
-        embed.timestamp = after.edited_at or discord.utils.utcnow()
-
-        await log_channel.send(embed=embed)
-
-
-# Setup function required for cogs
-async def setup(bot):
-    await bot.add_cog(Logs(bot))
-
 
 # ------------------ Status Loop ------------------
 @tasks.loop(minutes=10)
