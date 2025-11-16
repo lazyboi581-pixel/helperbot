@@ -563,6 +563,139 @@ async def serverinfo(interaction: discord.Interaction):
         print(f"[serverinfo error] {e}")
         await interaction.response.send_message("An unexpected error occurred while fetching server info.", ephemeral=True)
 
+# ------------------ Welcome System Storage ------------------
+
+WELCOME_FILE = "welcome_config.json"
+
+# Load config
+def load_welcome():
+    if not os.path.exists(WELCOME_FILE):
+        with open(WELCOME_FILE, "w") as f:
+            json.dump({}, f)
+    with open(WELCOME_FILE, "r") as f:
+        return json.load(f)
+
+# Save config
+def save_welcome(data):
+    with open(WELCOME_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+welcome_data = load_welcome()
+
+
+# ------------------ Set Welcome Channel ------------------
+@bot.tree.command(name="welcome_channel", description="Set the channel for welcome messages.")
+@app_commands.describe(channel="Channel to send welcome messages in")
+async def welcome_channel(interaction: discord.Interaction, channel: discord.TextChannel):
+
+    if not interaction.user.guild_permissions.manage_guild:
+        return await interaction.response.send_message("❌ You need **Manage Server** permission.", ephemeral=True)
+
+    guild_id = str(interaction.guild.id)
+
+    if guild_id not in welcome_data:
+        welcome_data[guild_id] = {}
+
+    welcome_data[guild_id]["channel"] = channel.id
+    save_welcome(welcome_data)
+
+    await interaction.response.send_message(
+        f"✅ Welcome channel set to {channel.mention}",
+        ephemeral=True
+    )
+
+
+# ------------------ Set Welcome Message ------------------
+@bot.tree.command(name="welcome_message", description="Set the welcome message.")
+@app_commands.describe(message="Use {user} for the joining user")
+async def welcome_message(interaction: discord.Interaction, message: str):
+
+    if not interaction.user.guild_permissions.manage_guild:
+        return await interaction.response.send_message("❌ You need **Manage Server** permission.", ephemeral=True)
+
+    guild_id = str(interaction.guild.id)
+
+    if guild_id not in welcome_data:
+        welcome_data[guild_id] = {}
+
+    welcome_data[guild_id]["message"] = message
+    save_welcome(welcome_data)
+
+    await interaction.response.send_message(
+        f"✅ Welcome message set to:\n{message}",
+        ephemeral=True
+    )
+
+
+# ------------------ Set DM Welcome Message ------------------
+@bot.tree.command(name="welcome_dm", description="Set the DM message sent to new members.")
+@app_commands.describe(message="Use {user} for the member's name")
+async def welcome_dm(interaction: discord.Interaction, message: str):
+
+    if not interaction.user.guild_permissions.manage_guild:
+        return await interaction.response.send_message("❌ You need **Manage Server** permission.", ephemeral=True)
+
+    guild_id = str(interaction.guild.id)
+
+    if guild_id not in welcome_data:
+        welcome_data[guild_id] = {}
+
+    welcome_data[guild_id]["dm"] = message
+    save_welcome(welcome_data)
+
+    await interaction.response.send_message(
+        f"📬 DM welcome message set to:\n{message}",
+        ephemeral=True
+    )
+
+
+# ------------------ Test Welcome ------------------
+@bot.tree.command(name="welcome_test", description="Test the welcome message.")
+async def welcome_test(interaction: discord.Interaction):
+
+    if not interaction.user.guild_permissions.manage_guild:
+        return await interaction.response.send_message("❌ You need **Manage Server** permission.", ephemeral=True)
+
+    guild_id = str(interaction.guild.id)
+
+    if guild_id not in welcome_data or "channel" not in welcome_data[guild_id]:
+        return await interaction.response.send_message("❌ Welcome channel not set.", ephemeral=True)
+
+    channel = interaction.guild.get_channel(welcome_data[guild_id]["channel"])
+    msg = welcome_data[guild_id].get("message", "Welcome {user}!")
+
+    await channel.send(msg.replace("{user}", interaction.user.mention))
+    await interaction.user.send(welcome_data[guild_id].get("dm", "Welcome to the server, {user}!").replace("{user}", interaction.user.name))
+
+    await interaction.response.send_message("✅ Test message sent!", ephemeral=True)
+
+
+# ------------------ Member Join Listener ------------------
+@bot.event
+async def on_member_join(member: discord.Member):
+    guild_id = str(member.guild.id)
+
+    if guild_id not in welcome_data:
+        return
+
+    config = welcome_data[guild_id]
+
+    # Send welcome message in the channel
+    if "channel" in config:
+        channel = member.guild.get_channel(config["channel"])
+        if channel:
+            msg = config.get("message", "Welcome {user}!")
+            await channel.send(msg.replace("{user}", member.mention))
+
+    # Send DM welcome
+    if "dm" in config:
+        try:
+            dm_msg = config["dm"].replace("{user}", member.name)
+            await member.send(dm_msg)
+        except:
+            pass  # User has DMs blocked
+
+
 
 # ------------------ Moderation Commands ------------------
 # (i fixed it all angel              )
