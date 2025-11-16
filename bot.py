@@ -11,6 +11,8 @@ import datetime
 import os
 import aiohttp
 import json
+import time
+from discord.ui import View, Button
 
 
 
@@ -419,6 +421,110 @@ async def help_command(interaction: discord.Interaction):
     ))
 
     await interaction.response.send_message(embed=embed, view=view)
+
+
+# ------------------ User Info Command ------------------
+@bot.tree.command(name="userinfo", description="Shows information about a user.")
+@app_commands.describe(member="The user you want info about")
+async def userinfo(interaction: discord.Interaction, member: discord.Member = None):
+
+    member = member or interaction.user  # Default to command user
+
+    embed = discord.Embed(
+        title=f"👤 User Info — {member.name}",
+        color=discord.Color.blurple()
+    )
+
+    embed.set_thumbnail(url=member.display_avatar.url)
+
+    embed.add_field(name="📝 Username", value=str(member), inline=True)
+    embed.add_field(name="🆔 User ID", value=str(member.id), inline=True)
+    embed.add_field(name="🤖 Bot?", value="Yes" if member.bot else "No", inline=True)
+
+    embed.add_field(
+        name="📅 Account Created",
+        value=member.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        inline=False
+    )
+
+    embed.add_field(
+        name="📥 Joined Server",
+        value=member.joined_at.strftime("%Y-%m-%d %H:%M:%S") if member.joined_at else "Unavailable",
+        inline=False
+    )
+
+    # Roles (except @everyone)
+    roles = [role.mention for role in member.roles if role.name != "@everyone"]
+    embed.add_field(
+        name="🎭 Roles",
+        value=", ".join(roles) if roles else "No Roles",
+        inline=False
+    )
+
+    embed.set_footer(text="Helper Bot — User Information")
+
+    await interaction.response.send_message(embed=embed)
+
+
+# ------------------ Server Info Command ------------------
+@bot.tree.command(name="serverinfo", description="Shows information about the server.")
+async def serverinfo(interaction: discord.Interaction):
+
+    guild = interaction.guild
+
+    embed = discord.Embed(
+        title=f"📂 Server Info — {guild.name}",
+        color=discord.Color.blurple()
+    )
+
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
+
+    # Basic server info
+    embed.add_field(name="🆔 Server ID", value=str(guild.id), inline=True)
+    embed.add_field(name="👑 Owner", value=str(guild.owner), inline=True)
+    embed.add_field(name="🌎 Members", value=str(guild.member_count), inline=True)
+
+    # Boost info
+    embed.add_field(name="🚀 Boosts", value=str(guild.premium_subscription_count), inline=True)
+    embed.add_field(name="💎 Boost Level", value=str(guild.premium_tier), inline=True)
+
+    # Channels
+    embed.add_field(
+        name="📁 Channels",
+        value=(
+            f"Text: {len(guild.text_channels)}\n"
+            f"Voice: {len(guild.voice_channels)}\n"
+            f"Categories: {len(guild.categories)}"
+        ),
+        inline=False
+    )
+
+    # Roles (excluding @everyone)
+    roles = [role.mention for role in guild.roles if role.name != "@everyone"]
+    embed.add_field(
+        name="🎭 Roles",
+        value=", ".join(roles) if roles else "No Roles",
+        inline=False
+    )
+
+    # Emojis
+    embed.add_field(
+        name="😊 Emojis",
+        value=str(len(guild.emojis)),
+        inline=True
+    )
+
+    # Server creation date
+    embed.add_field(
+        name="📅 Created On",
+        value=guild.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+        inline=False
+    )
+
+    embed.set_footer(text="Helper Bot — Server Information")
+
+    await interaction.response.send_message(embed=embed)
 
 
 # ------------------ Moderation Commands ------------------
