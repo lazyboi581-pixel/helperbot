@@ -13,8 +13,6 @@ import aiohttp
 import json
 import time
 from discord.ui import View, Button
-await bot.load_extension("logs")
-
 
 
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
