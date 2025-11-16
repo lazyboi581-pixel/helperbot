@@ -466,65 +466,102 @@ async def userinfo(interaction: discord.Interaction, member: discord.Member = No
     await interaction.response.send_message(embed=embed)
 
 
-# ------------------ Server Info Command ------------------
+# ------------------ Robust Server Info Command ------------------
 @bot.tree.command(name="serverinfo", description="Shows information about the server.")
 async def serverinfo(interaction: discord.Interaction):
-
     guild = interaction.guild
+    if not guild:
+        return await interaction.response.send_message("This command can only be used in a server.", ephemeral=True)
 
-    embed = discord.Embed(
-        title=f"📂 Server Info — {guild.name}",
-        color=discord.Color.blurple()
-    )
+    try:
+        # Owner (try cached first, then API fetch)
+        owner = guild.owner
+        if owner is None:
+            try:
+                owner = await guild.fetch_member(guild.owner_id)
+            except Exception:
+                try:
+                    owner = await bot.fetch_user(guild.owner_id)
+                except Exception:
+                    owner = None
 
-    if guild.icon:
-        embed.set_thumbnail(url=guild.icon.url)
+        # Basic counts
+        member_count = guild.member_count or sum(1 for _ in guild.members)
+        text_count = len(guild.text_channels)
+        voice_count = len(guild.voice_channels)
+        category_count = len(guild.categories)
+        emoji_count = len(guild.emojis)
+        boost_count = getattr(guild, "premium_subscription_count", 0)
+        boost_tier = getattr(guild, "premium_tier", 0)
 
-    # Basic server info
-    embed.add_field(name="🆔 Server ID", value=str(guild.id), inline=True)
-    embed.add_field(name="👑 Owner", value=str(guild.owner), inline=True)
-    embed.add_field(name="🌎 Members", value=str(guild.member_count), inline=True)
+        # Roles: exclude @everyone, show a limited preview to avoid embed overflow
+        roles = [r for r in guild.roles if r != guild.default_role]
+        roles = sorted(roles, key=lambda r: r.position, reverse=True)  # highest-first
+        max_roles_to_show = 25
+        shown_roles = roles[:max_roles_to_show]
+        roles_display = ", ".join(r.mention for r in shown_roles) if shown_roles else "No Roles"
+        if len(roles) > max_roles_to_show:
+            roles_display += f", and {len(roles) - max_roles_to_show} more..."
+        # ensure field length < 1000 chars (safe margin)
+        if len(roles_display) > 900:
+            roles_display = roles_display[:900].rsplit(",", 1)[0] + " ..."
 
-    # Boost info
-    embed.add_field(name="🚀 Boosts", value=str(guild.premium_subscription_count), inline=True)
-    embed.add_field(name="💎 Boost Level", value=str(guild.premium_tier), inline=True)
+        # Build embed
+        embed = discord.Embed(
+            title=f"📂 Server Info — {guild.name}",
+            color=discord.Color.blurple()
+        )
 
-    # Channels
-    embed.add_field(
-        name="📁 Channels",
-        value=(
-            f"Text: {len(guild.text_channels)}\n"
-            f"Voice: {len(guild.voice_channels)}\n"
-            f"Categories: {len(guild.categories)}"
-        ),
-        inline=False
-    )
+        if guild.icon:
+            try:
+                embed.set_thumbnail(url=guild.icon.url)
+            except Exception:
+                pass
 
-    # Roles (excluding @everyone)
-    roles = [role.mention for role in guild.roles if role.name != "@everyone"]
-    embed.add_field(
-        name="🎭 Roles",
-        value=", ".join(roles) if roles else "No Roles",
-        inline=False
-    )
+        embed.add_field(name="🆔 Server ID", value=str(guild.id), inline=True)
+        embed.add_field(name="👑 Owner", value=str(owner) if owner else "Unavailable", inline=True)
+        embed.add_field(name="🌎 Members", value=str(member_count), inline=True)
 
-    # Emojis
-    embed.add_field(
-        name="😊 Emojis",
-        value=str(len(guild.emojis)),
-        inline=True
-    )
+        embed.add_field(name="🚀 Boosts", value=str(boost_count), inline=True)
+        embed.add_field(name="💎 Boost Level", value=str(boost_tier), inline=True)
 
-    # Server creation date
-    embed.add_field(
-        name="📅 Created On",
-        value=guild.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-        inline=False
-    )
+        embed.add_field(
+            name="📁 Channels",
+            value=f"Text: {text_count}\nVoice: {voice_count}\nCategories: {category_count}",
+            inline=False
+        )
 
-    embed.set_footer(text="Helper Bot — Server Information")
+        embed.add_field(name="🎭 Roles", value=roles_display, inline=False)
 
-    await interaction.response.send_message(embed=embed)
+        embed.add_field(name="😊 Emojis", value=str(emoji_count), inline=True)
+
+        embed.add_field(
+            name="📅 Created On",
+            value=guild.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            inline=False
+        )
+
+        embed.set_footer(text="Helper Bot — Server Information")
+
+        await interaction.response.send_message(embed=embed)
+
+    except discord.HTTPException as http_err:
+        # Likely an embed size / permissions / rate limit problem — send minimal fallback
+        try:
+            fallback = (
+                f"**{guild.name}** — basic info\n"
+                f"ID: {guild.id}\n"
+                f"Members: {guild.member_count}\n"
+                f"Owner: {str(guild.owner) if getattr(guild, 'owner', None) else 'Unavailable'}\n"
+                f"Created: {guild.created_at.strftime('%Y-%m-%d')}"
+            )
+            await interaction.response.send_message(fallback, ephemeral=True)
+        except Exception:
+            await interaction.response.send_message("Could not fetch server info due to an error.", ephemeral=True)
+    except Exception as e:
+        # Generic catchall (log or print if you want)
+        print(f"[serverinfo error] {e}")
+        await interaction.response.send_message("An unexpected error occurred while fetching server info.", ephemeral=True)
 
 
 # ------------------ Moderation Commands ------------------
