@@ -17,6 +17,7 @@ from discord.ui import View, Button, Select
 
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 
+
 # ------------------ Flask Keep-Alive ------------------
 app = Flask(__name__)
 
@@ -1002,6 +1003,8 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 
 # ------------------ BOT OWNER BLACKLIST COMMANDS ------------------
 
+OWNER_ID = 1382858887786528803
+
 @bot.tree.command(
     name="botban",
     description="Ban a user from using the bot.",
@@ -1010,7 +1013,7 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 @app_commands.describe(user="User to ban from the bot")
 async def botban(interaction: discord.Interaction, user: discord.User):
 
-    if interaction.user.id != 1382858887786528803:
+    if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
             "❌ Only the bot owner can use this command.",
             ephemeral=True
@@ -1039,7 +1042,7 @@ async def botban(interaction: discord.Interaction, user: discord.User):
 @app_commands.describe(user="User to unban")
 async def botunban(interaction: discord.Interaction, user: discord.User):
 
-    if interaction.user.id != 1382858887786528803:
+    if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
             "❌ Only the bot owner can use this command.",
             ephemeral=True
@@ -1067,7 +1070,7 @@ async def botunban(interaction: discord.Interaction, user: discord.User):
 )
 async def botbanlist(interaction: discord.Interaction):
 
-    if interaction.user.id != 1382858887786528803:
+    if interaction.user.id != OWNER_ID:
         return await interaction.response.send_message(
             "❌ Only the bot owner can use this command.",
             ephemeral=True
@@ -1094,24 +1097,6 @@ async def botbanlist(interaction: discord.Interaction):
         f"🚫 **Blacklisted Users:**\n{formatted}",
         ephemeral=True
     )
-
-
-# ----------BLACKLIST-----------
-
-BLACKLIST_FILE = "blacklist.json"
-
-def load_blacklist():
-    if not os.path.exists(BLACKLIST_FILE):
-        with open(PATH := BLACKLIST_FILE, "w") as f:
-            json.dump([], f)
-    with open(BLACKLIST_FILE, "r") as f:
-        return json.load(f)
-
-def save_blacklist(data):
-    with open(BLACKLIST_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
-blacklisted_users = load_blacklist()
 
 
 # ------------------ Status Loop -----------------
