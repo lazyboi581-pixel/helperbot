@@ -1005,7 +1005,7 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 # ------------------ BOT OWNER BLACKLIST COMMANDS ------------------
 
 @bot.tree.command(
-    name="botban2",
+    name="botban",
     description="Ban a user from using the bot.",
     # default_permissions removed
 )
@@ -1034,7 +1034,7 @@ async def botban(interaction: discord.Interaction, user: discord.User):
 
 
 @bot.tree.command(
-    name="botunban2",
+    name="botunban",
     description="Unban a user from the bot.",
     # default_permissions removed
 )
@@ -1063,7 +1063,7 @@ async def botunban(interaction: discord.Interaction, user: discord.User):
 
 
 @bot.tree.command(
-    name="botbanlist2",
+    name="botbanlist",
     description="View all globally banned users.",
     # default_permissions removed
 )
