@@ -12,9 +12,7 @@ import os
 import aiohttp
 import json
 import time
-from discord.ui import View, Button
-from discord.ui import View, Select
-
+from discord.ui import View, Button, Select
 
 
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
@@ -90,6 +88,55 @@ def save_warns(data):
     with open(WARN_FILE, "w") as f:
         json.dump(data, f, indent=4)
 
+
+# ------------------ BLACKLIST SYSTEM ------------------
+BLACKLIST_FILE = "blacklist.json"
+
+def load_blacklist():
+    if not os.path.exists(BLACKLIST_FILE):
+        with open(BLACKLIST_FILE, "w") as f:
+            json.dump([], f)
+    with open(BLACKLIST_FILE, "r") as f:
+        return json.load(f)
+
+def save_blacklist(data):
+    with open(BLACKLIST_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+blacklisted_users = load_blacklist()
+
+
+def has_guild_permissions(user, **perms):
+    gp = getattr(user, "guild_permissions", None)
+    if gp is None:
+        return False
+    return all(getattr(gp, name, False) == value for name, value in perms.items())
+
+
+def check_hierarchy(interaction: discord.Interaction, target: discord.Member) -> Optional[str]:
+    if not interaction.guild:
+        return "This command can only be used in a server."
+
+    invoker = interaction.user
+    guild = interaction.guild
+    bot_member = guild.me
+
+    if target == invoker:
+        return "You cannot perform this action on yourself."
+    if bot_member and target == bot_member:
+        return "I cannot do that to myself."
+
+    if isinstance(invoker, discord.Member):
+        if target.top_role >= invoker.top_role and invoker != guild.owner:
+            return "You cannot moderate this user (their highest role is equal or higher)."
+
+    if bot_member:
+        if target.top_role >= bot_member.top_role:
+            return "I cannot moderate this user (their role is higher than mine)."
+
+    return None
+
+# ===========Helper stuff========
 
 def has_guild_permissions(user, **perms):
     gp = getattr(user, "guild_permissions", None)
