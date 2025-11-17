@@ -13,6 +13,8 @@ import aiohttp
 import json
 import time
 from discord.ui import View, Button
+from discord.ui import View, Select
+
 
 
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
@@ -582,6 +584,97 @@ async def serverinfo(interaction: discord.Interaction):
         print(f"[serverinfo error] {e}")
         await interaction.response.send_message("An unexpected error occurred while fetching server info.", ephemeral=True)
 
+# ------------------ Emoticons Command (Dropdown Menu) ------------------
+
+@bot.tree.command(name="emoticons", description="Browse a list of emoticons by category.")
+async def emoticons(interaction: discord.Interaction):
+
+    # Emoticon categories
+    emoticons = {
+        "Cute": [
+            "╰(°▽°)╯",
+            "ヾ(≧▽≦*)o",
+            "(p≧w≦q)",
+            "(づ｡◕‿‿◕｡)づ",
+            "(≧◡≦)",
+            "(>ᴗ<)",
+            "(｡♥‿♥｡)"
+        ],
+        "Happy": [
+            "（＾▽＾）",
+            "ヽ(・∀・)ﾉ",
+            "(＾▽＾)",
+            "(*´▽`*)",
+            "(*^‿^*)",
+            "٩(◕‿◕｡)۶"
+        ],
+        "Angry": [
+            "(｀皿´＃)",
+            "(ಠ_ಠ)",
+            "(ง'̀-'́)ง",
+            "(ノಠ益ಠ)ノ彡┻━┻",
+            "(╬ Ò﹏Ó)"
+        ],
+        "Crying": [
+            "(ಥ﹏ಥ)",
+            "(T_T)",
+            "(；⌣̀_⌣́)",
+            "(っ˘̩╭╮˘̩)っ",
+            "(╥_╥)"
+        ],
+        "Shrug": [
+            "¯\\_(ツ)_/¯",
+            "┐(￣ヘ￣)┌",
+            "┐(´д｀)┌",
+            "ʅ（◞‿◟）ʃ"
+        ],
+        "Tableflip": [
+            "(╯°□°）╯︵ ┻━┻",
+            "┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻",
+            "┬─┬ ノ( ゜-゜ノ)"
+        ]
+    }
+
+    # Dropdown menu
+    class EmoteSelect(Select):
+        def __init__(self):
+            options = [
+                discord.SelectOption(label=cat, description=f"View {cat} emoticons")
+                for cat in emoticons.keys()
+            ]
+            super().__init__(
+                placeholder="Choose a category...",
+                min_values=1,
+                max_values=1,
+                options=options
+            )
+
+        async def callback(self, interaction2: discord.Interaction):
+            category = self.values[0]
+            emotes = emoticons[category]
+
+            embed = discord.Embed(
+                title=f"{category} Emoticons",
+                description="\n".join(emotes),
+                color=discord.Color.random()
+            )
+            embed.set_footer(text="Click another category to browse more!")
+
+            await interaction2.response.edit_message(embed=embed, view=self.view)
+
+    class EmoteView(View):
+        def __init__(self):
+            super().__init__(timeout=60)
+            self.add_item(EmoteSelect())
+
+    embed = discord.Embed(
+        title="(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Emoticons Browser",
+        description="Choose a category below to view emoticons!",
+        color=discord.Color.random()
+    )
+
+    await interaction.response.send_message(embed=embed, view=EmoteView())
+
 
 # ------------------ Moderation Commands ------------------
 # (i fixed it all angel              )
@@ -801,16 +894,30 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
     embed.set_footer(text=f"Total warnings: {len(warns_list)}")
     await interaction.response.send_message(embed=embed)
 
-# ------------------ Status Loop ------------------
-@tasks.loop(minutes=10)
+# ------------------ Status Loop -----------------
+status_index = 0  # for rotating statuses
+
+@tasks.loop(seconds=20)  # rotates status every 20 seconds (change if you want)
 async def update_status():
-    await bot.change_presence(
-        activity=discord.Activity(
+    global status_index
+
+    statuses = [
+        # Status 1: Listening to /help
+        discord.Activity(
+            type=discord.ActivityType.listening,
+            name="/help"
+        ),
+
+        # Status 2: Helping X servers
+        discord.Activity(
             type=discord.ActivityType.playing,
             name=f"Helping {len(bot.guilds)} servers"
         )
-    )
+    ]
 
+    await bot.change_presence(activity=statuses[status_index])
+
+    status_index = (status_index + 1) % len(statuses)
 
 # ------------------ Events ------------------
 @bot.event
