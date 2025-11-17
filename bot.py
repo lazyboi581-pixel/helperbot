@@ -584,12 +584,15 @@ async def serverinfo(interaction: discord.Interaction):
         print(f"[serverinfo error] {e}")
         await interaction.response.send_message("An unexpected error occurred while fetching server info.", ephemeral=True)
 
-# ------------------ Emoticons Command (Dropdown Menu) ------------------
+# ------------------ Emoticons Command (Dropdown + Modal Copy) ------------------
 
-@bot.tree.command(name="emoticons", description="Browse a list of emoticons by category.")
+from discord.ui import View, Select, Modal, TextInput
+import discord
+
+@bot.tree.command(name="emoticons", description="Browse a list of emoticons and copy them (mobile supported).")
 async def emoticons(interaction: discord.Interaction):
 
-    # Emoticon categories
+    # Emoticon categories and lists
     emoticons = {
         "Cute": [
             "╰(°▽°)╯",
@@ -635,45 +638,69 @@ async def emoticons(interaction: discord.Interaction):
         ]
     }
 
-    # Dropdown menu
-    class EmoteSelect(Select):
+    # Modal to copy emoticon
+    class CopyModal(Modal, title="Copy Emoticon"):
+        def __init__(self, emoticon):
+            super().__init__()
+            self.add_item(TextInput(label="Tap and Copy", default=emoticon))
+
+    # Dropdown #1: Choose category
+    class CategorySelect(Select):
         def __init__(self):
             options = [
-                discord.SelectOption(label=cat, description=f"View {cat} emoticons")
-                for cat in emoticons.keys()
+                discord.SelectOption(label=c, description=f"{c} emoticons")
+                for c in emoticons
             ]
             super().__init__(
                 placeholder="Choose a category...",
+                options=options,
                 min_values=1,
-                max_values=1,
-                options=options
+                max_values=1
             )
 
         async def callback(self, interaction2: discord.Interaction):
             category = self.values[0]
-            emotes = emoticons[category]
+
+            # Dropdown #2: Choose specific emoticon
+            class EmoteSelect(Select):
+                def __init__(self):
+                    options = [
+                        discord.SelectOption(label=e, description="Tap to copy")
+                        for e in emoticons[category]
+                    ]
+                    super().__init__(
+                        placeholder=f"{category} emoticons",
+                        options=options,
+                        min_values=1,
+                        max_values=1
+                    )
+
+                async def callback(self, interaction3: discord.Interaction):
+                    emoticon = self.values[0]
+                    await interaction3.response.send_modal(CopyModal(emoticon))
+
+            view2 = View()
+            view2.add_item(EmoteSelect())
 
             embed = discord.Embed(
                 title=f"{category} Emoticons",
-                description="\n".join(emotes),
+                description="Select an emoticon below to copy it.",
                 color=discord.Color.random()
             )
-            embed.set_footer(text="Click another category to browse more!")
 
-            await interaction2.response.edit_message(embed=embed, view=self.view)
+            await interaction2.response.edit_message(embed=embed, view=view2)
 
-    class EmoteView(View):
-        def __init__(self):
-            super().__init__(timeout=60)
-            self.add_item(EmoteSelect())
+    # Initial view
+    view = View()
+    view.add_item(CategorySelect())
 
     embed = discord.Embed(
         title="(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Emoticons Browser",
-        description="Choose a category below to view emoticons!",
+        description="Choose a category to browse emoticons!",
         color=discord.Color.random()
     )
 
-    await interaction.response.send_message(embed=embed, view=EmoteView())
+    await interaction.response.send_message(embed=embed, view=view)
 
 
 # ------------------ Moderation Commands ------------------
