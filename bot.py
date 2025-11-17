@@ -1010,7 +1010,7 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 @app_commands.describe(user="User to ban from the bot")
 async def botban(interaction: discord.Interaction, user: discord.User):
 
-    if interaction.user.id != OWNER_ID:
+    if interaction.user.id != 1382858887786528803:
         return await interaction.response.send_message(
             "❌ Only the bot owner can use this command.",
             ephemeral=True
@@ -1039,7 +1039,7 @@ async def botban(interaction: discord.Interaction, user: discord.User):
 @app_commands.describe(user="User to unban")
 async def botunban(interaction: discord.Interaction, user: discord.User):
 
-    if interaction.user.id != OWNER_ID:
+    if interaction.user.id != 1382858887786528803:
         return await interaction.response.send_message(
             "❌ Only the bot owner can use this command.",
             ephemeral=True
@@ -1067,7 +1067,7 @@ async def botunban(interaction: discord.Interaction, user: discord.User):
 )
 async def botbanlist(interaction: discord.Interaction):
 
-    if interaction.user.id != OWNER_ID:
+    if interaction.user.id != 1382858887786528803:
         return await interaction.response.send_message(
             "❌ Only the bot owner can use this command.",
             ephemeral=True
