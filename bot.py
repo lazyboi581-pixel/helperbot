@@ -1,4 +1,5 @@
-# bot.py — fully fixed version
+# bot.py — FULLY FIXED VERSION (PART 1)
+
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -14,10 +15,8 @@ import json
 import time
 from discord.ui import View, Button, Select
 
-
-OWNER_ID = int(os.getenv("OWNER_ID", "0"))
-
-OWNER_ID = 1382858887786528803
+# ------------------ OWNER ID ------------------
+OWNER_ID = 1382858887786528803  
 
 # ------------------ Flask Keep-Alive ------------------
 app = Flask(__name__)
@@ -39,44 +38,8 @@ intents.members = True
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 
-# ------------------ GLOBAL BLACKLIST CHECK ------------------
-@bot.check
-async def blacklist_check(interaction_or_ctx):
-
-    # For slash commands (interactions)
-    if hasattr(interaction_or_ctx, "interaction") and interaction_or_ctx.interaction:
-        user = interaction_or_ctx.interaction.user
-        respond = interaction_or_ctx.interaction.response
-
-    # For message commands (if you ever add them)
-    else:
-        user = interaction_or_ctx.author
-        respond = interaction_or_ctx.respond
-
-    # Is the user blacklisted?
-    if user.id in blacklisted_users:
-
-        # DM them
-        try:
-            await user.send("❌ You are banned from using Helper Bot.")
-        except:
-            pass  # their DMs might be closed
-
-        # Ephemeral reply so the command doesn't 'hang'
-        try:
-            await respond.send_message(
-                "❌ You are banned from using this bot.",
-                ephemeral=True
-            )
-        except:
-            pass
-
-        return False  # Block them from the command
-
-    return True  # Allow normal users
-
-
 # ------------------ Helper Functions ------------------
+# WARN SYSTEM
 WARN_FILE = "warns.json"
 
 def load_warns():
@@ -91,9 +54,61 @@ def save_warns(data):
         json.dump(data, f, indent=4)
 
 
+# ------------------ BLACKLIST SYSTEM ------------------
+BLACKLIST_FILE = "blacklist.json"
 
-# ===========Helper stuff========
+def load_blacklist():
+    if not os.path.exists(BLACKLIST_FILE):
+        with open(BLACKLIST_FILE, "w") as f:
+            json.dump([], f)
+    with open(BLACKLIST_FILE, "r") as f:
+        return json.load(f)
 
+def save_blacklist(data):
+    with open(BLACKLIST_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+blacklisted_users = load_blacklist()
+
+
+# ------------------ GLOBAL BLACKLIST CHECK ------------------
+@bot.check
+async def blacklist_check(interaction_or_ctx):
+
+    # Slash command interactions
+    if hasattr(interaction_or_ctx, "interaction") and interaction_or_ctx.interaction:
+        user = interaction_or_ctx.interaction.user
+        respond = interaction_or_ctx.interaction.response
+    else:
+        # fallback for future message commands
+        user = interaction_or_ctx.author
+        respond = interaction_or_ctx.respond
+
+    # Check if blacklisted
+    if user.id in blacklisted_users:
+
+        # DM them
+        try:
+            await user.send("❌ You are banned from using Helper Bot.")
+        except:
+            pass
+
+        # Ephemeral block message
+        try:
+            await respond.send_message(
+                "❌ You are banned from using this bot.",
+                ephemeral=True
+            )
+        except:
+            pass
+
+        return False
+
+    return True
+
+
+# ------------------ Permission Helpers ------------------
+    
 def has_guild_permissions(user, **perms):
     gp = getattr(user, "guild_permissions", None)
     if gp is None:
@@ -123,12 +138,13 @@ def check_hierarchy(interaction: discord.Interaction, target: discord.Member) ->
             return "I cannot moderate this user (their role is higher than mine)."
 
     return None
-
-
+    
 # ------------------ Fun Commands ------------------
+
 @bot.tree.command(name="hello", description="Say hello to Helper bot")
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message("Hello! I am Helper Bot, how are you?")
+
 
 @bot.tree.command(name="joke", description="Tells you a random joke")
 async def joke(interaction: discord.Interaction):
@@ -143,6 +159,7 @@ async def joke(interaction: discord.Interaction):
         "What time did the guy go to the dentist? Tooth thirty."
     ]
     await interaction.response.send_message(random.choice(jokes))
+
 
 @bot.tree.command(name="corndog", description="Summons the mighty corndog")
 async def corndog(interaction: discord.Interaction):
@@ -161,9 +178,11 @@ async def corndog(interaction: discord.Interaction):
     embed.set_image(url=gif_url)
     await interaction.response.send_message(embed=embed)
 
+
 @bot.tree.command(name="randomnumber", description="Picks a random number between 1-200")
 async def randomnumber(interaction: discord.Interaction):
     await interaction.response.send_message(f"Your random number is: {random.randint(1, 200)}")
+
 
 @bot.tree.command(name="compliment", description="Compliments you")
 async def compliment(interaction: discord.Interaction):
@@ -176,19 +195,22 @@ async def compliment(interaction: discord.Interaction):
     ]
     await interaction.response.send_message(random.choice(compliments))
 
+
 @bot.tree.command(name="ping", description="Check bot latency")
 async def ping(interaction: discord.Interaction):
     latency = round(bot.latency * 1000)
     embed = discord.Embed(
-        title="🏓 Pong! Bot is up and running!",
+        title="🏓 Pong!",
         description=f"Latency: **{latency}ms**",
         color=discord.Color.gold()
     )
     await interaction.response.send_message(embed=embed)
 
+
 @bot.tree.command(name="flip", description="Flip a coin")
 async def flip(interaction: discord.Interaction):
     await interaction.response.send_message(f"🪙 You flipped **{random.choice(['Heads','Tails'])}**!")
+
 
 @bot.tree.command(name="8ball", description="Ask the 8 ball")
 @app_commands.describe(question="Your question")
@@ -201,52 +223,8 @@ async def eight_ball(interaction: discord.Interaction, question: str):
     ]
     await interaction.response.send_message(f"🎱 **Question:** {question}\n💬 **Answer:** {random.choice(responses)}")
 
-# slash command /cute 
-@bot.tree.command(name="cute", description="Get a random cute dog or cat picture!")
-@app_commands.describe(animal="Choose dog or cat")
-@app_commands.choices(animal=[
-    app_commands.Choice(name="Dog", value="dog"),
-    app_commands.Choice(name="Cat", value="cat")
-])
-async def cute(interaction: discord.Interaction, animal: app_commands.Choice[str]):
-    await interaction.response.defer()
 
-    async with aiohttp.ClientSession() as session:
-        if animal.value == "dog":
-            # Random dog API
-            async with session.get("https://dog.ceo/api/breeds/image/random") as resp:
-                data = await resp.json()
-                pic = data["message"]
-                title = "🐶 Cute Dog!"
-
-        else:
-            # Random cat API
-            async with session.get("https://api.thecatapi.com/v1/images/search") as resp:
-                data = await resp.json()
-                pic = data[0]["url"]
-                title = "🐱 Cute Cat!"
-
-    embed = discord.Embed(title=title, color=discord.Color.random())
-    embed.set_image(url=pic)
-
-    await interaction.followup.send(embed=embed)
-
-@bot.tree.command(name="avatar", description="Show a user's avatar")
-async def avatar(interaction: discord.Interaction, member: discord.Member = None):
-    member = member or interaction.user
-    embed = discord.Embed(
-        title=f"{member.name}'s Avatar",
-        color=discord.Color.random()
-    )
-    embed.set_image(url=member.avatar)
-    await interaction.response.send_message(embed=embed)
-
-@bot.tree.command(name="cookie", description="Give someone a cookie 🍪")
-async def cookie(interaction: discord.Interaction, member: discord.Member):
-    await interaction.response.send_message(f"🍪 {interaction.user.mention} gave {member.mention} a **cookie!**")
-
-
-# slash command /meme
+# ------------------ Meme Command ------------------
 @bot.tree.command(name="meme", description="Get a random meme from Reddit")
 async def meme(interaction: discord.Interaction):
     await interaction.response.defer()
@@ -261,9 +239,112 @@ async def meme(interaction: discord.Interaction):
             await interaction.followup.send(embed=embed)
 
 
-# slash command /giveaway
+# ------------------ Cute Command ------------------
+@bot.tree.command(name="cute", description="Get a cute dog or cat picture")
+@app_commands.describe(animal="Choose dog or cat")
+async def cute(interaction: discord.Interaction, animal: str):
 
-class GiveawayView(discord.ui.View):
+    animal = animal.lower()
+    await interaction.response.defer()
+
+    url = None
+    if animal == "dog":
+        url = "https://dog.ceo/api/breeds/image/random"
+    elif animal == "cat":
+        url = "https://api.thecatapi.com/v1/images/search"
+    else:
+        return await interaction.followup.send("Choose either 'dog' or 'cat'.")
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                return await interaction.followup.send("Could not fetch image.")
+
+            data = await resp.json()
+
+            if animal == "dog":
+                img = data["message"]
+            else:
+                img = data[0]["url"]
+
+            embed = discord.Embed(
+                title=f"Here's a cute {animal}! 🐾",
+                color=discord.Color.random()
+            )
+            embed.set_image(url=img)
+            await interaction.followup.send(embed=embed)
+
+
+# ------------------ Emoticons Command ------------------
+@bot.tree.command(name="emoticons", description="Browse a list of emoticons that are easy to copy")
+async def emoticons(interaction: discord.Interaction):
+
+    emoticons_map = {
+        "Cute": ["╰(°▽°)╯", "ヾ(≧▽≦*)o", "(p≧w≦q)", "(づ｡◕‿‿◕｡)づ", "(≧◡≦)", "(>ᴗ<)", "(｡♥‿♥｡)"],
+        "Happy": ["（＾▽＾）", "ヽ(・∀・)ﾉ", "(＾▽＾)", "(*´▽`*)", "(*^‿^*)", "٩(◕‿◕｡)۶"],
+        "Angry": ["(｀皿´＃)", "(ಠ_ಠ)", "(ง'̀-'́)ง", "(ノಠ益ಠ)ノ彡┻━┻", "(╬ Ò﹏Ó)"],
+        "Crying": ["(ಥ﹏ಥ)", "(T_T)", "(；⌣̀_⌣́)", "(っ˘̩╭╮˘̩)っ", "(╥_╥)"],
+        "Shrug": ["¯\\_(ツ)_/¯", "┐(￣ヘ￣)┌", "┐(´д｀)┌", "ʅ（◞‿◟）ʃ"],
+        "Tableflip": ["(╯°□°）╯︵ ┻━┻", "┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻", "┬─┬ ノ( ゜-゜ノ)"]
+    }
+
+    class EmoteSelect(Select):
+        def __init__(self, category):
+            options = [
+                discord.SelectOption(label=e, description="Tap to copy")
+                for e in emoticons_map[category]
+            ]
+            super().__init__(
+                placeholder="Select an emoticon",
+                options=options,
+                min_values=1,
+                max_values=1
+            )
+
+        async def callback(self, i2: discord.Interaction):
+            chosen = self.values[0]
+            await i2.response.send_message(f"Here you go!\n\n`{chosen}`", ephemeral=True)
+
+    class CategorySelect(Select):
+        def __init__(self):
+            options = [
+                discord.SelectOption(label=c, description=f"{c} emoticons")
+                for c in emoticons_map
+            ]
+            super().__init__(
+                placeholder="Choose a category",
+                options=options,
+                min_values=1,
+                max_values=1
+            )
+
+        async def callback(self, i2: discord.Interaction):
+            category = self.values[0]
+            view2 = View()
+            view2.add_item(EmoteSelect(category))
+
+            embed = discord.Embed(
+                title=f"{category} Emoticons",
+                description="Pick one below to copy it.",
+                color=discord.Color.random()
+            )
+            await i2.response.edit_message(embed=embed, view=view2)
+
+    view = View()
+    view.add_item(CategorySelect())
+
+    embed = discord.Embed(
+        title="Emoticon Browser",
+        description="Choose a category to view and copy emoticons.",
+        color=discord.Color.random()
+    )
+
+    await interaction.response.send_message(embed=embed, view=view)
+
+
+# ------------------ GIVEAWAY SYSTEM ------------------
+
+class GiveawayView(View):
     def __init__(self, prize, winners):
         super().__init__(timeout=None)
         self.prize = prize
@@ -278,20 +359,21 @@ class GiveawayView(discord.ui.View):
         self.entries.append(interaction.user.id)
         await interaction.response.send_message("✅ You entered the giveaway!", ephemeral=True)
 
+
 async def end_giveaway(message, prize, winners, entries):
     channel = message.channel
 
     if not entries:
-        return await channel.send(f"😢 No one entered the giveaway for **{prize}**.")
+        return await channel.send(f"😢 No entries for **{prize}**.")
 
     winner_list = random.sample(entries, min(winners, len(entries)))
     mentions = ", ".join(f"<@{u}>" for u in winner_list)
 
-    await channel.send(f"🎉 Congratulations {mentions}! You won **{prize}**!")
+    await channel.send(f"🎉 Congrats {mentions}! You won **{prize}**!")
 
 
 @bot.tree.command(name="giveawaystart", description="Start a giveaway")
-@app_commands.describe(duration="Duration in minutes", prize="Prize", winners="Number of winners")
+@app_commands.describe(duration="Minutes", prize="Prize", winners="Number of winners")
 async def giveaway_start(interaction: discord.Interaction, duration: int, prize: str, winners: int = 1):
     await interaction.response.defer()
 
@@ -307,18 +389,18 @@ async def giveaway_start(interaction: discord.Interaction, duration: int, prize:
 
     msg = await interaction.followup.send(embed=embed, view=view)
 
-    # Auto end
     asyncio.create_task(
         giveaway_auto_end(msg, prize, winners, duration, view)
     )
+
 
 async def giveaway_auto_end(message, prize, winners, duration, view):
     await asyncio.sleep(duration * 60)
     await end_giveaway(message, prize, winners, view.entries)
 
 
-@bot.tree.command(name="giveawayend", description="End giveaway early")
-@app_commands.describe(message_id="ID of the giveaway message")
+@bot.tree.command(name="giveawayend", description="End a giveaway early")
+@app_commands.describe(message_id="Giveaway message ID")
 async def giveaway_end(interaction: discord.Interaction, message_id: str):
     try:
         msg = await interaction.channel.fetch_message(int(message_id))
@@ -326,7 +408,7 @@ async def giveaway_end(interaction: discord.Interaction, message_id: str):
         return await interaction.response.send_message("Invalid message ID.", ephemeral=True)
 
     if not msg.components:
-        return await interaction.response.send_message("That message has no giveaway button.", ephemeral=True)
+        return await interaction.response.send_message("That message has no giveaway.", ephemeral=True)
 
     view = msg.components[0].children[0].view
 
@@ -334,7 +416,7 @@ async def giveaway_end(interaction: discord.Interaction, message_id: str):
     await interaction.response.send_message("Giveaway ended!", ephemeral=True)
 
 
-# ------------------ POLL ------------------
+# ------------------ POLL SYSTEM ------------------
 @bot.tree.command(name="poll", description="Create a poll with up to 5 options")
 @app_commands.describe(question="Poll question")
 async def poll(interaction: discord.Interaction, question: str,
@@ -354,11 +436,11 @@ async def poll(interaction: discord.Interaction, question: str,
         color=discord.Color.blurple()
     )
     embed.add_field(
-        name="Options",
+        name="Options:",
         value="\n".join(f"{emojis[i]} {options[i]}" for i in range(len(options))),
         inline=False
     )
-    embed.set_footer(text=f"Poll ends in {duration} seconds")
+    embed.set_footer(text=f"Poll ends in {duration}s")
 
     await interaction.response.send_message(embed=embed)
     msg = await interaction.original_response()
@@ -398,7 +480,7 @@ async def poll(interaction: discord.Interaction, question: str,
                         for i in range(len(options))),
         inline=False
     )
-    result_embed.add_field(name="Outcome", value=result_text, inline=False)
+    result_embed.add_field(name="Outcome:", value=result_text, inline=False)
 
     await interaction.followup.send(embed=result_embed)
 
@@ -739,7 +821,7 @@ async def emoticons(interaction: discord.Interaction):
 
 
 # ------------------ Moderation Commands ------------------
-# (i fixed it all angel              )
+# ------------------ Moderation Commands ------------------
 
 @bot.tree.command(name="kick", description="Kick a member")
 async def kick(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
@@ -756,6 +838,7 @@ async def kick(interaction: discord.Interaction, member: discord.Member, reason:
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}", ephemeral=True)
 
+
 @bot.tree.command(name="ban", description="Ban a member")
 async def ban(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
     if not has_guild_permissions(interaction.user, ban_members=True):
@@ -771,6 +854,7 @@ async def ban(interaction: discord.Interaction, member: discord.Member, reason: 
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}", ephemeral=True)
 
+
 @bot.tree.command(name="unban", description="Unban a user ID")
 async def unban(interaction: discord.Interaction, user_id: int):
     if not has_guild_permissions(interaction.user, ban_members=True):
@@ -782,6 +866,7 @@ async def unban(interaction: discord.Interaction, user_id: int):
         await interaction.response.send_message(f"Unbanned {user}.")
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}", ephemeral=True)
+
 
 @bot.tree.command(name="timeout", description="Timeout a member")
 async def timeout(interaction: discord.Interaction, member: discord.Member, minutes: int, reason: Optional[str] = None):
@@ -801,6 +886,7 @@ async def timeout(interaction: discord.Interaction, member: discord.Member, minu
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}", ephemeral=True)
 
+
 @bot.tree.command(name="untimeout", description="Remove timeout")
 async def untimeout(interaction: discord.Interaction, member: discord.Member):
     if not has_guild_permissions(interaction.user, moderate_members=True):
@@ -812,7 +898,8 @@ async def untimeout(interaction: discord.Interaction, member: discord.Member):
     except Exception as e:
         await interaction.response.send_message(f"Error: {e}", ephemeral=True)
 
-@bot.tree.command(name="purge", description="Delete messages")
+
+@bot.tree.command(name="purge", description="Delete messages (1-100)")
 async def purge(interaction: discord.Interaction, number: int):
     if not has_guild_permissions(interaction.user, manage_messages=True):
         return await interaction.response.send_message("Missing permission.", ephemeral=True)
@@ -824,7 +911,8 @@ async def purge(interaction: discord.Interaction, number: int):
     deleted = await interaction.channel.purge(limit=number)
     await interaction.followup.send(f"Deleted {len(deleted)} messages.", ephemeral=True)
 
-@bot.tree.command(name="lock", description="Lock channel")
+
+@bot.tree.command(name="lock", description="Lock the channel")
 async def lock(interaction: discord.Interaction):
     if not has_guild_permissions(interaction.user, manage_channels=True):
         return await interaction.response.send_message("Missing permission.", ephemeral=True)
@@ -832,7 +920,8 @@ async def lock(interaction: discord.Interaction):
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
     await interaction.response.send_message("🔒 Channel locked.")
 
-@bot.tree.command(name="unlock", description="Unlock channel")
+
+@bot.tree.command(name="unlock", description="Unlock the channel")
 async def unlock(interaction: discord.Interaction):
     if not has_guild_permissions(interaction.user, manage_channels=True):
         return await interaction.response.send_message("Missing permission.", ephemeral=True)
@@ -840,8 +929,9 @@ async def unlock(interaction: discord.Interaction):
     await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=None)
     await interaction.response.send_message("🔓 Channel unlocked.")
 
-
+    
 # ------------------ WARN SYSTEM ------------------
+
 @bot.tree.command(name="warn", description="Warn a member")
 async def warn(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
     if not has_guild_permissions(interaction.user, kick_members=True):
@@ -861,7 +951,7 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
         data[guild_id][uid] = []
 
     warn_info = {
-        "reason": reason or "No reason",
+        "reason": reason or "No reason provided",
         "by": str(interaction.user),
         "timestamp": datetime.datetime.utcnow().isoformat()
     }
@@ -873,64 +963,8 @@ async def warn(interaction: discord.Interaction, member: discord.Member, reason:
         f"⚠️ Warned {member.mention}. Total warnings: {len(data[guild_id][uid])}"
     )
 
-# CLEAR ALL WARNS
-@bot.tree.command(name="clearwarns", description="Clear all warnings for a member")
-@app_commands.describe(member="Member whose warnings you want to clear")
-async def clearwarns(interaction: discord.Interaction, member: discord.Member):
 
-    if not has_guild_permissions(interaction.user, kick_members=True):
-        return await interaction.response.send_message("Missing permission.", ephemeral=True)
-
-    data = load_warns()
-    guild_id = str(interaction.guild.id)
-    uid = str(member.id)
-
-    if guild_id in data and uid in data[guild_id]:
-        data[guild_id][uid] = []
-        save_warns(data)
-        return await interaction.response.send_message(
-            f"🗑️ Cleared all warnings for {member.mention}"
-        )
-
-    await interaction.response.send_message(
-        f"{member.mention} has no warnings.", ephemeral=True
-    )
-
-
-
-@bot.tree.command(name="delwarn", description="Delete a single warning by number")
-@app_commands.describe(member="Member", warn_number="Warning number to delete")
-async def delwarn(interaction: discord.Interaction, member: discord.Member, warn_number: int):
-
-    if not has_guild_permissions(interaction.user, kick_members=True):
-        return await interaction.response.send_message("Missing permission.", ephemeral=True)
-
-    data = load_warns()
-    guild_id = str(interaction.guild.id)
-    uid = str(member.id)
-
-    if guild_id not in data or uid not in data[guild_id]:
-        return await interaction.response.send_message(
-            "This user has no warnings.", ephemeral=True
-        )
-
-    warns_list = data[guild_id][uid]
-
-    if warn_number < 1 or warn_number > len(warns_list):
-        return await interaction.response.send_message(
-            "Invalid warning number.", ephemeral=True
-        )
-
-    removed = warns_list.pop(warn_number - 1)
-    save_warns(data)
-
-    await interaction.response.send_message(
-        f"🗑️ Removed warning #{warn_number} from {member.mention}\n"
-        f"**Removed reason:** {removed['reason']}"
-    )
-
-
-@bot.tree.command(name="warns", description="Check a user's warnings")
+@bot.tree.command(name="warns", description="Check a member's warnings")
 async def warns(interaction: discord.Interaction, member: discord.Member):
     data = load_warns()
     guild_id = str(interaction.guild.id)
@@ -955,6 +989,50 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 
     embed.set_footer(text=f"Total warnings: {len(warns_list)}")
     await interaction.response.send_message(embed=embed)
+
+
+@bot.tree.command(name="clearwarns", description="Clear ALL warnings for a member")
+async def clearwarns(interaction: discord.Interaction, member: discord.Member):
+    if not has_guild_permissions(interaction.user, kick_members=True):
+        return await interaction.response.send_message("Missing permission.", ephemeral=True)
+
+    data = load_warns()
+    guild_id = str(interaction.guild.id)
+    uid = str(member.id)
+
+    if guild_id in data and uid in data[guild_id]:
+        data[guild_id][uid] = []
+        save_warns(data)
+        return await interaction.response.send_message(f"🗑 Cleared all warnings for {member.mention}")
+
+    await interaction.response.send_message("This user has no warnings.", ephemeral=True)
+
+
+@bot.tree.command(name="delwarn", description="Delete a single warning by number")
+async def delwarn(interaction: discord.Interaction, member: discord.Member, warn_number: int):
+
+    if not has_guild_permissions(interaction.user, kick_members=True):
+        return await interaction.response.send_message("Missing permission.", ephemeral=True)
+
+    data = load_warns()
+    guild_id = str(interaction.guild.id)
+    uid = str(member.id)
+
+    if guild_id not in data or uid not in data[guild_id]:
+        return await interaction.response.send_message("This user has no warnings.", ephemeral=True)
+
+    warns_list = data[guild_id][uid]
+
+    if warn_number < 1 or warn_number > len(warns_list):
+        return await interaction.response.send_message("Invalid warning number.", ephemeral=True)
+
+    removed = warns_list.pop(warn_number - 1)
+    save_warns(data)
+
+    await interaction.response.send_message(
+        f"🗑 Removed warning #{warn_number} from {member.mention}\nReason: {removed['reason']}"
+    )
+
     
 # ------------------ BLACKLIST SYSTEM ------------------
 BLACKLIST_FILE = "blacklist.json"
@@ -975,94 +1053,54 @@ blacklisted_users = load_blacklist()
 
 # ------------------ BOT OWNER BLACKLIST COMMANDS ------------------
 
-@bot.tree.command(
-    name="botban",
-    description="Ban a user from using the bot.",
-    @app_commands.checks.has_permissions(administrator=True)  # hides from normal users
-    # default_permissions removed
-)
-@app_commands.describe(user="User to ban from the bot")
+@bot.tree.command(name="botban", description="Ban a user from using the bot.")
+@app_commands.describe(user="User to blacklist")
 async def botban(interaction: discord.Interaction, user: discord.User):
 
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message(
-            "❌ Only the bot owner can use this command.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Only the bot owner can use this.", ephemeral=True)
 
     if user.id in blacklisted_users:
-        return await interaction.response.send_message(
-            "❌ That user is already banned.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("User already banned.", ephemeral=True)
 
     blacklisted_users.append(user.id)
     save_blacklist(blacklisted_users)
 
     await interaction.response.send_message(
-        f"🚫 {user.mention} is now banned from using Helper Bot.",
+        f"🚫 {user} is now banned from using this bot.",
         ephemeral=True
     )
 
 
-@bot.tree.command(
-    name="botunban",
-    description="Unban a user from the bot.",
-    @app_commands.checks.has_permissions(administrator=True)  # hides from normal users
-)
+@bot.tree.command(name="botunban", description="Unban a user from the bot.")
 @app_commands.describe(user="User to unban")
 async def botunban(interaction: discord.Interaction, user: discord.User):
 
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message(
-            "❌ Only the bot owner can use this command.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Only the bot owner can use this.", ephemeral=True)
 
     if user.id not in blacklisted_users:
-        return await interaction.response.send_message(
-            "❌ That user is not banned.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("User is not banned.", ephemeral=True)
 
     blacklisted_users.remove(user.id)
     save_blacklist(blacklisted_users)
 
     await interaction.response.send_message(
-        f"✅ {user.mention} has been unbanned from using Helper Bot.",
+        f"✅ {user} has been unbanned.",
         ephemeral=True
     )
 
 
-@bot.tree.command(
-    name="botbanlist",
-    description="View all globally banned users.",
-    @app_commands.checks.has_permissions(administrator=True)  # hides from normal users
-)
+@bot.tree.command(name="botbanlist", description="View all banned bot users.")
 async def botbanlist(interaction: discord.Interaction):
 
     if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message(
-            "❌ Only the bot owner can use this command.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("❌ Only the bot owner can use this.", ephemeral=True)
 
     if not blacklisted_users:
-        return await interaction.response.send_message(
-            "📭 No users are currently banned.",
-            ephemeral=True
-        )
+        return await interaction.response.send_message("No banned users.", ephemeral=True)
 
-    # Format list with usernames if available
-    lines = []
-    for uid in blacklisted_users:
-        try:
-            user = await bot.fetch_user(uid)
-            lines.append(f"• `{uid}` — {user}")
-        except:
-            lines.append(f"• `{uid}`")
-
-    formatted = "\n".join(lines)
+    formatted = "\n".join(f"• <@{uid}> (`{uid}`)" for uid in blacklisted_users)
 
     await interaction.response.send_message(
         f"🚫 **Blacklisted Users:**\n{formatted}",
@@ -1070,30 +1108,15 @@ async def botbanlist(interaction: discord.Interaction):
     )
 
 
-# ------------------ Status Loop -----------------
-status_index = 0  # for rotating statuses
-
-@tasks.loop(seconds=20)  # rotates status every 20 seconds (change if you want)
+# ------------------ Status Loop ------------------
+@tasks.loop(minutes=10)
 async def update_status():
-    global status_index
-
-    statuses = [
-        # Status 1: Listening to /help
-        discord.Activity(
-            type=discord.ActivityType.listening,
-            name="/help"
-        ),
-
-        # Status 2: Helping X servers
-        discord.Activity(
+    await bot.change_presence(
+        activity=discord.Activity(
             type=discord.ActivityType.playing,
-            name=f"Helping {len(bot.guilds)} servers"
+            name=f"/help | Helping {len(bot.guilds)} servers"
         )
-    ]
-
-    await bot.change_presence(activity=statuses[status_index])
-
-    status_index = (status_index + 1) % len(statuses)
+    )
 
 # ------------------ Events ------------------
 @bot.event
@@ -1108,6 +1131,6 @@ async def on_ready():
 # ------------------ Run Bot ------------------
 TOKEN = os.getenv("BOT_TOKEN")
 if not TOKEN:
-    raise RuntimeError("BOT_TOKEN environment variable not set.")
+    raise RuntimeError("BOT_TOKEN env var missing.")
 
 bot.run(TOKEN)
