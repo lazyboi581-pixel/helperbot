@@ -38,6 +38,44 @@ intents.members = True
 
 bot = commands.Bot(command_prefix='/', intents=intents)
 
+
+# ------------------ GLOBAL BLACKLIST CHECK ------------------
+@bot.check
+async def blacklist_check(interaction_or_ctx):
+
+    # For slash commands (interactions)
+    if hasattr(interaction_or_ctx, "interaction") and interaction_or_ctx.interaction:
+        user = interaction_or_ctx.interaction.user
+        respond = interaction_or_ctx.interaction.response
+
+    # For message commands (if you ever add them)
+    else:
+        user = interaction_or_ctx.author
+        respond = interaction_or_ctx.respond
+
+    # Is the user blacklisted?
+    if user.id in blacklisted_users:
+
+        # DM them
+        try:
+            await user.send("❌ You are banned from using Helper Bot.")
+        except:
+            pass  # their DMs might be closed
+
+        # Ephemeral reply so the command doesn't 'hang'
+        try:
+            await respond.send_message(
+                "❌ You are banned from using this bot.",
+                ephemeral=True
+            )
+        except:
+            pass
+
+        return False  # Block them from the command
+
+    return True  # Allow normal users
+
+
 # ------------------ Helper Functions ------------------
 WARN_FILE = "warns.json"
 
@@ -914,6 +952,120 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
 
     embed.set_footer(text=f"Total warnings: {len(warns_list)}")
     await interaction.response.send_message(embed=embed)
+
+# ------------------ BOT OWNER BLACKLIST COMMANDS ------------------
+
+@bot.tree.command(
+    name="botban",
+    description="Ban a user from using the bot.",
+    default_permissions=False  # hides command from everyone but owner
+)
+@app_commands.describe(user="User to ban from the bot")
+async def botban(interaction: discord.Interaction, user: discord.User):
+
+    if interaction.user.id != OWNER_ID:
+        return await interaction.response.send_message(
+            "❌ Only the bot owner can use this command.",
+            ephemeral=True
+        )
+
+    if user.id in blacklisted_users:
+        return await interaction.response.send_message(
+            "❌ That user is already banned.",
+            ephemeral=True
+        )
+
+    blacklisted_users.append(user.id)
+    save_blacklist(blacklisted_users)
+
+    await interaction.response.send_message(
+        f"🚫 {user.mention} is now banned from using Helper Bot.",
+        ephemeral=True
+    )
+
+
+@bot.tree.command(
+    name="botunban",
+    description="Unban a user from the bot.",
+    default_permissions=False
+)
+@app_commands.describe(user="User to unban")
+async def botunban(interaction: discord.Interaction, user: discord.User):
+
+    if interaction.user.id != OWNER_ID:
+        return await interaction.response.send_message(
+            "❌ Only the bot owner can use this command.",
+            ephemeral=True
+        )
+
+    if user.id not in blacklisted_users:
+        return await interaction.response.send_message(
+            "❌ That user is not banned.",
+            ephemeral=True
+        )
+
+    blacklisted_users.remove(user.id)
+    save_blacklist(blacklisted_users)
+
+    await interaction.response.send_message(
+        f"✅ {user.mention} has been unbanned from using Helper Bot.",
+        ephemeral=True
+    )
+
+
+@bot.tree.command(
+    name="botbanlist",
+    description="View all globally banned users.",
+    default_permissions=False
+)
+async def botbanlist(interaction: discord.Interaction):
+
+    if interaction.user.id != OWNER_ID:
+        return await interaction.response.send_message(
+            "❌ Only the bot owner can use this command.",
+            ephemeral=True
+        )
+
+    if not blacklisted_users:
+        return await interaction.response.send_message(
+            "📭 No users are currently banned.",
+            ephemeral=True
+        )
+
+    # Format list with usernames if available
+    lines = []
+    for uid in blacklisted_users:
+        try:
+            user = await bot.fetch_user(uid)
+            lines.append(f"• `{uid}` — {user}")
+        except:
+            lines.append(f"• `{uid}`")
+
+    formatted = "\n".join(lines)
+
+    await interaction.response.send_message(
+        f"🚫 **Blacklisted Users:**\n{formatted}",
+        ephemeral=True
+    )
+
+
+# ----------BLACKLIST-----------
+
+BLACKLIST_FILE = "blacklist.json"
+
+def load_blacklist():
+    if not os.path.exists(BLACKLIST_FILE):
+        with open(PATH := BLACKLIST_FILE, "w") as f:
+            json.dump([], f)
+    with open(BLACKLIST_FILE, "r") as f:
+        return json.load(f)
+
+def save_blacklist(data):
+    with open(BLACKLIST_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+blacklisted_users = load_blacklist()
+
 
 # ------------------ Status Loop -----------------
 status_index = 0  # for rotating statuses
