@@ -17,6 +17,7 @@ from discord.ui import View, Button, Select
 
 OWNER_ID = int(os.getenv("OWNER_ID", "0"))
 
+OWNER_ID = 1382858887786528803
 
 # ------------------ Flask Keep-Alive ------------------
 app = Flask(__name__)
@@ -1002,8 +1003,6 @@ async def warns(interaction: discord.Interaction, member: discord.Member):
     await interaction.response.send_message(embed=embed)
 
 # ------------------ BOT OWNER BLACKLIST COMMANDS ------------------
-
-OWNER_ID = 1382858887786528803
 
 @bot.tree.command(
     name="botban",
