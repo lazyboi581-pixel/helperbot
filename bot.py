@@ -819,9 +819,125 @@ async def emoticons(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed, view=view)
 
+# ------------------ Moderation Commands ------------------
 
-# ------------------ Moderation Commands ------------------
-# ------------------ Moderation Commands ------------------
+MODLOG_CHANNEL_ID = 123456789012345678  # your mod log channel ID
+
+@bot.tree.command(name="automod_setup", description="Set up REAL Discord AutoMod with timeout + logging")
+async def automod_setup(interaction: discord.Interaction):
+
+    # ----------------------------------------------------
+    # PERMISSION CHECK
+    # ----------------------------------------------------
+    if not interaction.user.guild_permissions.manage_guild:
+        return await interaction.response.send_message(
+            "❌ You must have **Manage Server** to use this command.",
+            ephemeral=True
+        )
+
+    guild = interaction.guild
+
+    await interaction.response.send_message("⏳ Setting up AutoMod rules…", ephemeral=True)
+
+    # ----------------------------------------------------
+    # 1. KEYWORD RULE (BAD WORDS)
+    # ----------------------------------------------------
+    try:
+        await guild.create_automod_rule(
+            name="Bad Words Filter",
+            event_type=discord.AutoModRuleEventType.MESSAGE_SEND,
+            trigger=discord.AutoModRuleTrigger(
+                type=discord.AutoModRuleTriggerType.KEYWORD,
+                keyword_filter=[
+                    "fuck", "shit", "bitch", "nigger", "faggot",
+                    "slur1", "slur2", "cunt", "whore"
+                ]
+            ),
+            actions=[
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.BLOCK_MESSAGE),
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.TIMEOUT, duration_seconds=60)
+            ],
+            enabled=True
+        )
+    except:
+        pass
+
+    # ----------------------------------------------------
+    # 2. MASS MENTION FILTER
+    # ----------------------------------------------------
+    try:
+        await guild.create_automod_rule(
+            name="Mass Mentions",
+            event_type=discord.AutoModRuleEventType.MESSAGE_SEND,
+            trigger=discord.AutoModRuleTrigger(
+                type=discord.AutoModRuleTriggerType.MENTION_SPAM,
+                mention_total_limit=4
+            ),
+            actions=[
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.BLOCK_MESSAGE),
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.TIMEOUT, duration_seconds=120)
+            ],
+            enabled=True
+        )
+    except:
+        pass
+
+    # ----------------------------------------------------
+    # 3. INVITE BLOCKER
+    # ----------------------------------------------------
+    try:
+        await guild.create_automod_rule(
+            name="Block Invites",
+            event_type=discord.AutoModRuleEventType.MESSAGE_SEND,
+            trigger=discord.AutoModRuleTrigger(
+                type=discord.AutoModRuleTriggerType.KEYWORD,
+                keyword_filter=["discord.gg/", "invite.gg", "discord.com/invite"]
+            ),
+            actions=[
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.BLOCK_MESSAGE),
+            ],
+            enabled=True
+        )
+    except:
+        pass
+
+    # ----------------------------------------------------
+    # 4. LOGGING AUTOMOD ACTIONS
+    # ----------------------------------------------------
+    @bot.event
+    async def on_automod_action_execution(payload: discord.AutoModAction):
+        try:
+            channel = guild.get_channel(MODLOG_CHANNEL_ID)
+            if not channel:
+                return
+
+            embed = discord.Embed(
+                title="⚠️ AutoMod Action Triggered",
+                color=discord.Color.red()
+            )
+            embed.add_field(name="User", value=f"<@{payload.user_id}>")
+            embed.add_field(name="Rule", value=payload.rule_name)
+            embed.add_field(name="Action", value=str(payload.action.type).replace("AutoModRuleActionType.", ""))
+            embed.add_field(name="Blocked Message?", value="Yes" if payload.blocked_message else "No")
+            embed.set_timestamp()
+
+            await channel.send(embed=embed)
+        except Exception as e:
+            print("LOG ERROR:", e)
+
+    # ----------------------------------------------------
+    # DONE
+    # ----------------------------------------------------
+    await interaction.followup.send(
+        "✅ **AutoMod is now enabled for this server!**\n"
+        "- Blocks bad words\n"
+        "- Blocks invites\n"
+        "- Blocks mass mentions\n"
+        "- Auto-timeouts users\n"
+        "- Logs actions in mod-logs",
+        ephemeral=True
+    )
+
 
 @bot.tree.command(name="kick", description="Kick a member")
 async def kick(interaction: discord.Interaction, member: discord.Member, reason: Optional[str] = None):
