@@ -821,7 +821,152 @@ async def emoticons(interaction: discord.Interaction):
 
 # ------------------ Moderation Commands ------------------
 
-MODLOG_CHANNEL_ID = 123456789012345678  # your mod log channel ID
+@bot.event
+async def on_automod_action_execution(payload: discord.AutoModAction):
+    guild_id = str(payload.guild_id)
+
+    if guild_id not in modlog_data:
+        return  # No mod-log for this server yet
+
+    channel_id = modlog_data[guild_id]
+    guild = bot.get_guild(payload.guild_id)
+    channel = guild.get_channel(channel_id)
+
+    if not channel:
+        return
+
+    embed = discord.Embed(
+        title="⚠️ AutoMod Triggered",
+        color=discord.Color.red()
+    )
+
+    embed.add_field(name="User", value=f"<@{payload.user_id}>")
+    embed.add_field(name="Rule", value=payload.rule_name)
+    embed.add_field(name="Action", value=str(payload.action.type).replace("AutoModRuleActionType.", ""))
+    embed.add_field(name="Blocked Message?", value="Yes" if payload.blocked_message else "No")
+    embed.set_timestamp()
+
+    await channel.send(embed=embed)
+
+
+@bot.tree.command(name="automod_setup", description="Enable AutoMod with blocking, timeout, and logging")
+async def automod_setup(interaction: discord.Interaction):
+
+    if not interaction.user.guild_permissions.manage_guild:
+        return await interaction.response.send_message(
+            "❌ You need Manage Server to use this command.",
+            ephemeral=True
+        )
+
+    guild = interaction.guild
+    guild_id = str(guild.id)
+
+    await interaction.response.send_message("⏳ Setting up AutoMod…", ephemeral=True)
+
+    # Keyword block rule
+    try:
+        await guild.create_automod_rule(
+            name="Bad Words Filter",
+            event_type=discord.AutoModRuleEventType.MESSAGE_SEND,
+            trigger=discord.AutoModRuleTrigger(
+                type=discord.AutoModRuleTriggerType.KEYWORD,
+                keyword_filter=[
+                    "fuck", "shit", "bitch", "nigger", "faggot",
+                    "slur1", "slur2", "cunt", "whore"
+                ]
+            ),
+            actions=[
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.BLOCK_MESSAGE),
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.TIMEOUT, duration_seconds=60)
+            ],
+            enabled=True
+        )
+    except:
+        pass
+
+    # Mass mention filter
+    try:
+        await guild.create_automod_rule(
+            name="Mass Mentions",
+            event_type=discord.AutoModRuleEventType.MESSAGE_SEND,
+            trigger=discord.AutoModRuleTrigger(
+                type=discord.AutoModRuleTriggerType.MENTION_SPAM,
+                mention_total_limit=4
+            ),
+            actions=[
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.BLOCK_MESSAGE),
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.TIMEOUT, duration_seconds=120)
+            ],
+            enabled=True
+        )
+    except:
+        pass
+
+    # Invite blocker
+    try:
+        await guild.create_automod_rule(
+            name="Block Invites",
+            event_type=discord.AutoModRuleEventType.MESSAGE_SEND,
+            trigger=discord.AutoModRuleTrigger(
+                type=discord.AutoModRuleTriggerType.KEYWORD,
+                keyword_filter=["discord.gg/", "discord.com/invite", "invite.gg"]
+            ),
+            actions=[
+                discord.AutoModRuleAction(type=discord.AutoModRuleActionType.BLOCK_MESSAGE)
+            ],
+            enabled=True
+        )
+    except:
+        pass
+
+    await interaction.followup.send(
+        "✅ AutoMod Enabled!\n"
+        "- Bad words blocked\n"
+        "- Invites blocked\n"
+        "- Mass mentions blocked\n"
+        "- Users timed out\n"
+        "- Logged to mod-log channel\n\n"
+        "Use `/setmodlog` to change the log channel.",
+        ephemeral=True
+    )
+
+
+@bot.tree.command(name="setmodlog", description="Choose the mod-log channel for this server")
+async def setmodlog(interaction: discord.Interaction, channel: discord.TextChannel):
+
+    # Admin/Owner check
+    if not interaction.user.guild_permissions.manage_guild:
+        return await interaction.response.send_message(
+            "❌ You need **Manage Server** to use this.", ephemeral=True
+        )
+
+    guild_id = str(interaction.guild.id)
+
+    modlog_data[guild_id] = channel.id
+    save_modlogs(modlog_data)
+
+    await interaction.response.send_message(
+        f"✅ Mod-log channel has been set to {channel.mention}",
+        ephemeral=True
+    )
+
+
+# Universal per-server mod-log storage
+MODLOG_FILE = "modlogs.json"
+
+def load_modlogs():
+    if not os.path.exists(MODLOG_FILE):
+        with open(MODLOG_FILE, "w") as f:
+            json.dump({}, f)
+    with open(MODLOG_FILE, "r") as f:
+        return json.load(f)
+
+def save_modlogs(data):
+    with open(MODLOG_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+modlog_data = load_modlogs()
+
 
 @bot.tree.command(name="automod_setup", description="Set up REAL Discord AutoMod with timeout + logging")
 async def automod_setup(interaction: discord.Interaction):
