@@ -19,6 +19,8 @@ from discord.ui import View, Button, Select
 OWNER_ID = 1382858887786528803  
 
 # ------------------ Flask Keep-Alive ------------------
+
+# update 1
 app = Flask(__name__)
 
 @app.route('/')
