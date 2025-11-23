@@ -147,17 +147,27 @@ async def hello(interaction: discord.Interaction):
 
 @bot.tree.command(name="joke", description="Tells you a random joke")
 async def joke(interaction: discord.Interaction):
-    jokes = [
-        "What did one snowman say to the other snowman? It smells like carrots over here!",
-        "What did 20 do when it was hungry? Twenty-eight.",
-        "Why are mountains so funny? They’re hill areas.",
-        "Why wasn’t the cactus invited to hang out with the mushrooms? He wasn’t a fungi.",
-        "Why did the scarecrow win an award? Because he was outstanding in his field.",
-        "Why did the picture go to jail? It was framed.",
-        "How do you make holy water? You boil the hell out of it.",
-        "What time did the guy go to the dentist? Tooth thirty."
-    ]
-    await interaction.response.send_message(random.choice(jokes))
+    await interaction.response.defer()
+
+    url = "https://v2.jokeapi.dev/joke/Any?type=single"
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as resp:
+            if resp.status != 200:
+                return await interaction.followup.send("⚠️ Couldn't fetch a joke.")
+
+            data = await resp.json()
+            joke_text = data.get("joke", "No joke available.")
+
+            embed = discord.Embed(
+                title="🤣 Random Joke",
+                description=joke_text,
+                color=discord.Color.random()
+            )
+
+            embed.set_footer(text="Powered by JokeAPI")
+            await interaction.followup.send(embed=embed)
+
 
 @bot.tree.command(name="corndog", description="Summons the mighty corndog")
 async def corndog(interaction: discord.Interaction):
