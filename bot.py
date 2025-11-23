@@ -306,6 +306,62 @@ async def emoticons(interaction: discord.Interaction):
     embed = discord.Embed(title="(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ Emoticon Browser", description="Choose a category to browse emoticons!", color=discord.Color.random())
     await interaction.response.send_message(embed=embed, view=view)
 
+
+# ------------------ /about Command ------------------
+
+@bot.tree.command(name="about", description="Learn more about Helper Bot")
+async def about(interaction: discord.Interaction):
+
+    bot_user = bot.user
+
+    # Bot creation date
+    created_at = bot_user.created_at.strftime("%B %d, %Y")
+
+    # Count commands
+    total_commands = len(bot.tree.get_commands())
+
+    # Servers
+    total_servers = len(bot.guilds)
+
+    # Links
+    support_server = "https://discord.gg/7mSV6kENz3"
+    tos_link = "https://helper-bot-tos.carrd.co/"
+    privacy_link = "https://helper-bot-privacy-policy.carrd.co/"
+
+    # Premium embed design
+    embed = discord.Embed(
+        title=f"🤖 About {bot_user.name}",
+        description="A powerful multi-purpose bot designed to help manage and enhance your Discord server.",
+        color=discord.Color.blurple()
+    )
+
+    embed.set_thumbnail(url=bot_user.avatar.url)
+
+    embed.add_field(name="👑 Creator", value="Angel & Kyle", inline=True)
+    embed.add_field(name="📅 Created On", value=created_at, inline=True)
+    embed.add_field(name="🧩 Total Commands", value=str(total_commands), inline=True)
+    embed.add_field(name="🌐 Total Servers", value=str(total_servers), inline=True)
+
+    embed.add_field(
+        name="📌 Useful Links",
+        value=f"[Support Server]({support_server})\n"
+              f"[Terms of Service]({tos_link})\n"
+              f"[Privacy Policy]({privacy_link})",
+        inline=False
+    )
+
+    embed.set_footer(text="Made by Angel and Kyle ❤️")
+
+    # Buttons
+    view = View()
+
+    view.add_item(Button(label="Support Server", url=support_server))
+    view.add_item(Button(label="TOS", url=tos_link))
+    view.add_item(Button(label="Privacy Policy", url=privacy_link))
+
+    await interaction.response.send_message(embed=embed, view=view)
+
+
 # ------------------ Giveaway System ------------------
 class GiveawayView(View):
     def __init__(self, prize: str, winners: int):
