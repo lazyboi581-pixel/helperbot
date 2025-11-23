@@ -219,10 +219,10 @@ async def flip(interaction: discord.Interaction):
 @app_commands.describe(question="Your question")
 async def eight_ball(interaction: discord.Interaction, question: str):
     responses = [
-        "It is certain.", "Without a doubt.", "Yes – definitely.",
+        "No", "It is certain.", "Without a doubt.", "Yes – definitely.",
         "Most likely.", "Outlook good.", "Reply hazy, try again.",
         "Ask again later.", "Better not tell you now.",
-        "Don’t count on it.", "Outlook not so good.", "Very doubtful."
+        "Don’t count on it.", "Outlook not so good.", "Very doubtful.", "Yes"
     ]
     await interaction.response.send_message(f"🎱 **Question:** {question}\n💬 **Answer:** {random.choice(responses)}")
 
