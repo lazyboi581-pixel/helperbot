@@ -80,36 +80,6 @@ modlog_data = load_modlogs()
 # In-memory giveaways mapping: message_id -> GiveawayView
 GIVEAWAYS = {}
 
-# ------------------ GLOBAL BLACKLIST CHECK ------------------
-@bot.check
-async def blacklist_check(interaction_or_ctx):
-    # try to extract user and a responder
-    user = getattr(interaction_or_ctx, "user", None) or getattr(interaction_or_ctx, "author", None)
-    if user is None:
-        return True
-
-    if user.id in blacklisted_users:
-        try:
-            await user.send("❌ You are banned from using Helper Bot.")
-        except Exception:
-            pass
-
-        # Try to respond to the invoking context
-        if isinstance(interaction_or_ctx, discord.Interaction):
-            try:
-                await interaction_or_ctx.response.send_message("❌ You are banned from using this bot.", ephemeral=True)
-            except Exception:
-                pass
-        else:
-            try:
-                await interaction_or_ctx.reply("❌ You are banned from using this bot.", mention_author=False)
-            except Exception:
-                pass
-
-        return False
-
-    return True
-
 # ------------------ Permission Helpers ------------------
 def has_guild_permissions(user, **perms):
     gp = getattr(user, "guild_permissions", None)
@@ -822,37 +792,6 @@ async def delwarn(interaction: discord.Interaction, member: discord.Member, warn
     save_warns(data)
     await interaction.response.send_message(f"🗑 Removed warning #{warn_number} from {member.mention}\nReason: {removed['reason']}")
 
-# ------------------ Bot Owner Blacklist Commands ------------------
-@bot.tree.command(name="botban", description="Ban a user from using the bot.")
-@app_commands.describe(user="User to blacklist")
-async def botban(interaction: discord.Interaction, user: discord.User):
-    if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message("❌ Only the bot owner can use this.", ephemeral=True)
-    if user.id in blacklisted_users:
-        return await interaction.response.send_message("User already banned.", ephemeral=True)
-    blacklisted_users.append(user.id)
-    save_blacklist(blacklisted_users)
-    await interaction.response.send_message(f"🚫 {user} is now banned from using this bot.", ephemeral=True)
-
-@bot.tree.command(name="botunban", description="Unban a user from the bot.")
-@app_commands.describe(user="User to unban")
-async def botunban(interaction: discord.Interaction, user: discord.User):
-    if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message("❌ Only the bot owner can use this.", ephemeral=True)
-    if user.id not in blacklisted_users:
-        return await interaction.response.send_message("User is not banned.", ephemeral=True)
-    blacklisted_users.remove(user.id)
-    save_blacklist(blacklisted_users)
-    await interaction.response.send_message(f"✅ {user} has been unbanned.", ephemeral=True)
-
-@bot.tree.command(name="botbanlist", description="View all banned bot users.")
-async def botbanlist(interaction: discord.Interaction):
-    if interaction.user.id != OWNER_ID:
-        return await interaction.response.send_message("❌ Only the bot owner can use this.", ephemeral=True)
-    if not blacklisted_users:
-        return await interaction.response.send_message("No banned users.", ephemeral=True)
-    formatted = "\n".join(f"• <@{uid}> (`{uid}`)" for uid in blacklisted_users)
-    await interaction.response.send_message(f"🚫 **Blacklisted Users:**\n{formatted}", ephemeral=True)
 
 # ------------------ Status Loop & Events ------------------
 @tasks.loop(minutes=10)
